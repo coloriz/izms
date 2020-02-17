@@ -1,12 +1,12 @@
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, NamedTuple, List
 import json
 
 import requests
 
 
-with open('izonemail_settings.json') as f:
-    settings = json.load(f)
+settings = json.load((Path(__file__).resolve().parent / 'settings.json').read_text())
 
 
 class User(NamedTuple):
