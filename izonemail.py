@@ -6,7 +6,7 @@ import json
 import requests
 
 
-settings = json.load((Path(__file__).resolve().parent / 'settings.json').read_text())
+settings = json.loads((Path(__file__).resolve().parent / 'settings.json').read_text())
 
 
 class User(NamedTuple):
