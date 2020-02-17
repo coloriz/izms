@@ -8,8 +8,8 @@ from mailsaver import MailSaver
 
 
 def main():
-    with open('user_settings.json') as f:
-        settings = json.load(f)
+    # read user settings
+    settings = json.loads((Path(__file__).resolve().parent / 'user_settings.json').read_text())
     # directory in which mails are saved
     mail_dir = Path(settings['download_path'])
 
