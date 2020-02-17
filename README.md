@@ -58,5 +58,5 @@ $ python3 run.py
 The easiest way to see these HTMLs is to run a local http server.
 This method also can solve a browsers' invalid protocol error.
 ```shell script
-<http_root>$ python3 -m http.server
+"@http_root"$ python3 -m http.server
 ```
