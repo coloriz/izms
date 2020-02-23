@@ -147,6 +147,7 @@ Thumbs.db
 
 # user setting file
 user_settings.json
+/finish_hook.py
 
 # downloaded data
 /css
