@@ -19,6 +19,20 @@ in which the following variables are defined:
 
 > 🔔 This document does not cover how you get these IDs or tokens.
 
+In addition, you can optionally define `finish_hook` in `user_settings.json`:
+```json
+{
+  "finish_hook": "<path/to/handler>"
+}
+```
+
+If the key `finish_hook` presents in `user_settings.json`, 
+the program will execute it with following arguments, just before the program ends.
+
+```shell script
+$ python path/to/handler [name_of_program] [num_of_retrieved_mails]
+```
+
 ### Prerequisites
 - Python 3.6+
 - beautifulsoup4 >= 4.8.2

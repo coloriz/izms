@@ -5,6 +5,7 @@ from colorama import init, Fore, Style
 
 from izonemail import IZONEMail
 from mailsaver import MailSaver
+from utils import execute_handler as _execute_handler
 
 
 def main():
@@ -12,6 +13,14 @@ def main():
     settings = json.loads((Path(__file__).resolve().parent / 'user_settings.json').read_text())
     # directory in which mails are saved
     mail_dir = Path(settings['download_path'])
+
+    def execute_handler(*args):
+        finish_hook = settings.get('finish_hook')
+        if finish_hook is None:
+            return
+        returncode = _execute_handler(finish_hook, 'IZ*ONE Mail Shelter', *args)
+        if returncode != 0:
+            print(f'⚠️ The return code of finish hook is non-zero ({hex(returncode)})')
 
     # select the most recent mail id
     recent_pure_mail_id = -1
@@ -32,6 +41,7 @@ def main():
         print('New mails are available in your inbox.')
     else:
         print('Already up-to-date.')
+        execute_handler('0')
         return
 
     print(f'{Fore.CYAN}==>{Fore.RESET}{Style.BRIGHT} Retrieving User Information')
@@ -81,6 +91,7 @@ def main():
     if num_retrieved_mail > 0:
         print(f'Downloaded {num_retrieved_mail} mail{"" if num_retrieved_mail == 1 else "s"} from the mail server')
     print('💌 IZ*ONE Mail Shelter is up to date.')
+    execute_handler(str(num_retrieved_mail))
 
 
 if __name__ == '__main__':
