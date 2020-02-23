@@ -40,37 +40,40 @@ $ python path/to/handler [name_of_program] [num_of_retrieved_mails]
 - lxml >= 4.5.0
 - requests >= 2.22.0
 
-### Download CSS (optional)
+### Download CSS
 Because of the huge size of a CSS linked in HTML, I choose not to nest it.
 Instead, you can download it manually.
 ```shell script
 curl -O "<APP_HOST>/css/starship.css"
 ```
-and place it at `<http_root>/css/`.
+and place it under `<download_path>/css/`.
 
 ## Usage
 ```shell script
-$ python3 run.py
+$ python run.py
 ```
 
 ### Directory structure
+
 > 🔔 This is not mandatory.
-- <http_root>
-    - css
-        - starship.css
-    - <download_path>
-        - 1 (This is a member id)
-            - m100.html
-            - m103.html
-        - 2
-            - m101.html
-        - 3
-            - m102.html
-        - ...
+
+<pre>
+download_path
+├───css
+│   └───starship.css
+├───1 (This is a member id)
+│   ├───m100.html
+│   └───m103.html
+├───2
+│   └───m101.html
+├───3
+│   └───m102.html
+├───...
+</pre>
 
 ### How to see
 The easiest way to see these HTMLs is to run a local http server.
 This method also can solve a browsers' invalid protocol error.
 ```shell script
-"@http_root"$ python3 -m http.server
+/download/path$ python -m http.server
 ```
