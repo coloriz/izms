@@ -104,7 +104,7 @@ def main():
             print(f'{Fore.CYAN}==>{Fore.RESET}{Style.BRIGHT} '
                   f'Saving Mail \'{mail.id}\' to \'{mail_file.resolve()}\'.')
             mail_file.parent.mkdir(parents=True, exist_ok=True)
-            with mail_file.open('w') as f:
+            with mail_file.open('w', encoding='utf-8') as f:
                 mail_saver.dump(f, mail, mail_detail)
             # increase retrieved mail counter
             num_retrieved_mail += 1
