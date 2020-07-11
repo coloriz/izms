@@ -54,8 +54,12 @@ class IZONEMail:
     __APP_HOST = settings['app_host']
 
     def __init__(self, user_id: str, access_token: str):
+        # get an application version from Apple server
+        res = requests.get(r'https://itunes.apple.com/lookup?bundleId=com.ca-smart.izonemail&country=JP')
+        res.raise_for_status()
+        app_manifest = res.json()['results'][0]
         self.__sess = requests.Session()
-        self.__sess.headers['application-version'] = settings['application-version']
+        self.__sess.headers['application-version'] = app_manifest['version']
         self.__sess.headers['terms-version'] = settings['terms-version']
         self.__sess.headers['os-type'] = settings['os-type']
         self.__sess.headers['user-id'] = user_id
