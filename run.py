@@ -19,6 +19,16 @@ def main():
         exit(-1)
     settings = EasyDict(json.loads(settings_path.read_text()))
 
+    # User settings validation
+    for k in ['download_path', 'profile']:
+        if k not in settings:
+            print(f"❌️ Missing key '{k}' in {settings_path.name}!")
+            exit(-1)
+    for k in ['user-id', 'access-token', 'os-type', 'terms-version', 'application-version']:
+        if k not in settings.profile:
+            print(f"❌️ Missing key '{k}' in profile!")
+            exit(-1)
+
     # File containing local last mail timestamp
     head_path = cwd / 'HEAD'
     head = bytes_to_datetime(head_path.read_bytes()) if head_path.is_file() else datetime.fromtimestamp(0)
@@ -35,7 +45,7 @@ def main():
             print(f'⚠️ The return code of finish hook is non-zero ({hex(returncode)})')
 
     # IZ*ONE Private Mail client
-    app = IZONEMail(settings.user_id, settings.access_token)
+    app = IZONEMail(settings.profile)
 
     # Check if user_id and access_token is valid
     print(f'{Fore.CYAN}==>{Fore.RESET}{Style.BRIGHT} Retrieving User Information')

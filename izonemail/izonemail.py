@@ -1,14 +1,13 @@
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List
-import json
+from typing import Dict, List, Mapping
 
 from easydict import EasyDict
 from requests import Session
 
 from .model import User, Member, Team, Group, Mail, Inbox
 
-settings = json.loads((Path(__file__).resolve().parent / 'settings.json').read_text())
+API_HOST = r'https://app-api.izone-mail.com'
+APP_HOST = r'https://app-web.izone-mail.com'
 
 
 def create_member(m):
@@ -25,22 +24,9 @@ def create_mail(m):
 
 
 class IZONEMail:
-    __API_HOST = settings['api_host']
-    __APP_HOST = settings['app_host']
-
-    def __init__(self, user_id: str, access_token: str):
-        # get an application version from Apple server
+    def __init__(self, profile: Mapping[str, str]):
         self._s = Session()
-        r = self._s.get(r'https://itunes.apple.com/lookup?bundleId=com.ca-smart.izonemail&country=JP')
-        r.raise_for_status()
-        app_manifest = r.json()['results'][0]
-        self._s.headers.update({
-            'application-version': app_manifest['version'],
-            'terms-version': settings['terms-version'],
-            'os-type': settings['os-type'],
-            'user-id': user_id,
-            'access-token': access_token
-        })
+        self._s.headers.update(profile)
 
     def _get(self, url, **kwargs) -> Dict:
         r = self._s.get(url, **kwargs)
@@ -48,7 +34,7 @@ class IZONEMail:
         return EasyDict(r.json())
 
     def get_members(self) -> List[Group]:
-        r = self._get(f'{self.__API_HOST}/v1/members')
+        r = self._get(f'{API_HOST}/v1/members')
 
         groups = []
         for g in r.all_members:
@@ -58,22 +44,22 @@ class IZONEMail:
         return groups
 
     def get_user(self) -> User:
-        r = self._get(f'{self.__API_HOST}/v1/users')
+        r = self._get(f'{API_HOST}/v1/users')
         u = r.user
         user = User(u.id, u.access_token, u.nickname, u.gender,
                     u.country_code, u.prefecture_id, u.birthday, u.member_id)
         return user
 
     def get_application_settings(self) -> Dict:
-        r = self._get(f'{self.__API_HOST}/v1/application_settings')
+        r = self._get(f'{API_HOST}/v1/application_settings')
         return r.application_settings
 
     def get_informations(self) -> List[Dict]:
-        r = self._get(f'{self.__API_HOST}/v1/informations')
+        r = self._get(f'{API_HOST}/v1/informations')
         return r.informations
 
     def get_inbox(self, page: int = 1) -> Inbox:
-        r = self._get(f'{self.__API_HOST}/v1/inbox', params={
+        r = self._get(f'{API_HOST}/v1/inbox', params={
             'is_star': 0,
             'is_unread': 0,
             'page': page
