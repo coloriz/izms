@@ -27,8 +27,8 @@ def execute_handler(handler: str, *args) -> int:
 
 
 def datetime_to_bytes(dt: datetime):
-    return struct.pack('<f', dt.timestamp())
+    return struct.pack('<Q', int(dt.timestamp()))
 
 
 def bytes_to_datetime(b: bytes):
-    return datetime.fromtimestamp(struct.unpack('<f', b)[0])
+    return datetime.fromtimestamp(struct.unpack('<Q', b)[0])
