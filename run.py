@@ -96,7 +96,7 @@ def main():
                 continue
 
             print(f'{Fore.GREEN}==>{Fore.RESET}{Style.BRIGHT} Downloading {Fore.GREEN}{mail.detail_url}')
-            mail_detail = app.get_mail_detail(mail.id)
+            mail_detail = app.get_mail_detail(mail)
 
             print(f"{Fore.CYAN}==>{Fore.RESET}{Style.BRIGHT} Saving mail '{mail.id}' to \'{mail_file}\'")
             mail_file.parent.mkdir(parents=True, exist_ok=True)
