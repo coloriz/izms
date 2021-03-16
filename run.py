@@ -29,6 +29,7 @@ def main():
         if k not in settings.profile:
             print(f"❌️ Missing key '{k}' in 'profile'!")
             exit(-1)
+    print(json.dumps(settings, indent=2))
 
     # File containing local last mail timestamp
     head_path = cwd / 'HEAD'
