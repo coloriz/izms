@@ -1,5 +1,7 @@
+import struct
 import subprocess
 import sys
+from datetime import datetime
 
 
 def execute_handler(handler: str, *args) -> int:
@@ -12,11 +14,21 @@ def execute_handler(handler: str, *args) -> int:
     :param args: 핸들러를 호출할 때 인자로 들어갈 인수 목록
     :return: 핸들러의 반환값
     """
+    args = list(map(str, args))
+
     if handler.endswith('.py'):
-        process = subprocess.run([sys.executable, handler] + list(args))
+        process = subprocess.run([sys.executable, handler] + args)
     elif handler.endswith('.sh'):
-        process = subprocess.run(['/bin/sh', handler] + list(args))
+        process = subprocess.run(['/bin/sh', handler] + args)
     else:
-        process = subprocess.run([handler] + list(args))
+        process = subprocess.run([handler] + args)
 
     return process.returncode
+
+
+def datetime_to_bytes(dt: datetime):
+    return struct.pack('<f', dt.timestamp())
+
+
+def bytes_to_datetime(b: bytes):
+    return datetime.fromtimestamp(struct.unpack('<f', b)[0])

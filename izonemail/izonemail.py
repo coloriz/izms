@@ -1,52 +1,13 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, NamedTuple, List
+from typing import Dict, List
 import json
 
 import requests
 
+from .model import User, Member, Team, Group, Mail, Inbox
 
 settings = json.loads((Path(__file__).resolve().parent / 'settings.json').read_text())
-
-
-class User(NamedTuple):
-    nickname: str
-    gender: str
-    country_code: str
-    prefecture_id: int
-    birthday: str
-    member_id: int
-
-
-class Member(NamedTuple):
-    id: int
-    name: str
-    image_url: str
-
-
-class Team(NamedTuple):
-    name: str
-    members: List[Member]
-
-
-class Group(NamedTuple):
-    id: int
-    name: str
-    teams: List[Team]
-
-
-class Mail(NamedTuple):
-    member: Member
-    id: str
-    pure_id: int
-    subject: str
-    received: datetime
-
-
-class Inbox(NamedTuple):
-    page: int
-    has_next_page: bool
-    mails: List[Mail]
 
 
 class IZONEMail:
@@ -70,10 +31,8 @@ class IZONEMail:
         res.raise_for_status()
         return res.json()
 
-    def get_members(self) -> Group:
+    def get_members(self) -> List[Group]:
         res = self._get(f'{self.__API_HOST}/v1/members')
-        # this api always responses with one group.
-        group = res['all_members'][0]
 
         def make_member(m):
             return Member(m['id'], m['name'], m['image_url'])
@@ -81,13 +40,18 @@ class IZONEMail:
         def make_team(t):
             return Team(t['team_name'], [make_member(m) for m in t['members']])
 
-        return Group(group['group']['id'], group['group']['name'], [make_team(t) for t in group['team_members']])
+        groups = []
+        for g in res['all_members']:
+            group = Group(g['group']['id'], g['group']['name'], [make_team(t) for t in g['team_members']])
+            groups.append(group)
+
+        return groups
 
     def get_user(self) -> User:
         res = self._get(f'{self.__API_HOST}/v1/users')
         res = res['user']
-        user = User(res['nickname'], res['gender'], res['country_code'],
-                    res['prefecture_id'], res['birthday'], res['member_id'])
+        user = User(res['id'], res['access_token'], res['nickname'], res['gender'],
+                    res['country_code'], res['prefecture_id'], res['birthday'], res['member_id'])
         return user
 
     def get_application_settings(self) -> Dict:
@@ -110,13 +74,11 @@ class IZONEMail:
 
         def make_mail(m):
             received = datetime.fromisoformat(m['receive_datetime'])
-            # in case of birthday mail, ignore pure_id
-            pure_id = int(m['id'][1:]) if m['id'][0] != 'b' else 0
-            return Mail(make_member(m['member']), m['id'], pure_id, m['subject'], received)
+            return Mail(make_member(m['member']), m['id'], m['subject'], m['content'], received, m['detail_url'])
 
         return Inbox(res['page'], res['has_next_page'], [make_mail(m) for m in res['mails']])
 
-    def get_mail_detail(self, mail_id: str) -> bytes:
-        res = self.__sess.get(f'{self.__APP_HOST}/mail/{mail_id}')
+    def get_mail_detail(self, mail: Mail) -> bytes:
+        res = self.__sess.get(mail.detail_url)
         res.raise_for_status()
         return res.content
