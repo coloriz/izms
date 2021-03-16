@@ -1,6 +1,6 @@
 import base64
 
-import requests
+from requests import Session
 from bs4 import BeautifulSoup
 
 from izonemail import Mail
@@ -31,6 +31,7 @@ MAIL_HEADER = """
 
 class MailSaver:
     def __init__(self, username):
+        self._s = Session()
         self._username = username
 
     def dump(self, fp, mail: Mail, mail_detail: bytes):
@@ -52,7 +53,7 @@ class MailSaver:
 
         # replace all images to base64
         for e in markup.find_all('img'):
-            res = requests.get(e['src'])
+            res = self._s.get(e['src'])
             content_type = res.headers['content-type']
             encoded_body = base64.b64encode(res.content)
             e['src'] = f'data:{content_type};base64,{encoded_body.decode()}'

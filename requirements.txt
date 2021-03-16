@@ -2,3 +2,4 @@ beautifulsoup4
 colorama
 lxml
 requests
+easydict

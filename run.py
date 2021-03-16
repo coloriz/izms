@@ -3,6 +3,7 @@ from datetime import datetime
 from pathlib import Path
 
 from colorama import init, Fore, Style
+from easydict import EasyDict
 
 from izonemail import IZONEMail
 from mailsaver import MailSaver
@@ -11,14 +12,19 @@ from utils import execute_handler as _execute_handler, datetime_to_bytes, bytes_
 
 def main():
     cwd = Path(__file__).resolve().parent
-    # read user settings
-    settings = json.loads((cwd / 'user_settings.json').read_text())
+    # Read user settings
+    settings_path = cwd / 'user_settings.json'
+    if not settings_path.is_file():
+        print(f"❌️ User setting '{settings_path.name}' missing!")
+        exit(-1)
+    settings = EasyDict(json.loads(settings_path.read_text()))
+
     # File containing local last mail timestamp
     head_path = cwd / 'HEAD'
     head = bytes_to_datetime(head_path.read_bytes()) if head_path.is_file() else datetime.fromtimestamp(0)
     print(f'Current local HEAD: {head.isoformat()}')
-    # directory in which mails are saved
-    mail_dir = Path(settings['download_path'])
+    # Mail download path
+    mail_dir = Path(settings.download_path)
 
     def execute_handler(*args):
         finish_hook = settings.get('finish_hook')
@@ -29,7 +35,7 @@ def main():
             print(f'⚠️ The return code of finish hook is non-zero ({hex(returncode)})')
 
     # IZ*ONE Private Mail client
-    app = IZONEMail(settings['user_id'], settings['access_token'])
+    app = IZONEMail(settings.user_id, settings.access_token)
 
     # Check if user_id and access_token is valid
     print(f'{Fore.CYAN}==>{Fore.RESET}{Style.BRIGHT} Retrieving User Information')
