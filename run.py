@@ -5,8 +5,7 @@ from pathlib import Path
 from colorama import init, Fore, Style
 from easydict import EasyDict
 
-from izonemail import IZONEMail
-from mailsaver import MailSaver
+from izonemail import Profile, IZONEMail, MailSaver
 from utils import execute_handler as _execute_handler, datetime_to_bytes, bytes_to_datetime
 
 
@@ -17,18 +16,21 @@ def main():
     print(f'{Fore.YELLOW}==>{Fore.RESET}{Style.BRIGHT} Parsing settings')
     if not settings_path.is_file():
         print(f"❌️ User setting '{settings_path.name}' missing!")
-        exit(-1)
+        return -1
     settings = EasyDict(json.loads(settings_path.read_text()))
 
     # User settings validation
     for k in ['download_path', 'profile']:
         if k not in settings:
             print(f"❌️ Missing key '{k}' in '{settings_path.name}'!")
-            exit(-1)
-    for k in ['user-id', 'access-token', 'os-type', 'terms-version', 'application-version']:
+            return -1
+    for k in settings.profile:
+        if not Profile.is_valid_key(k):
+            print(f"❌️ Invalid key '{k}' in 'profile'!")
+    for k in Profile.required_keys():
         if k not in settings.profile:
-            print(f"❌️ Missing key '{k}' in 'profile'!")
-            exit(-1)
+            print(f"❌️ Missing required key '{k}' in 'profile'!")
+            return -1
     print(json.dumps(settings, indent=2))
 
     # File containing local last mail timestamp
@@ -47,7 +49,7 @@ def main():
             print(f'⚠️ The return code of finish hook is non-zero ({hex(returncode)})')
 
     # IZ*ONE Private Mail client
-    app = IZONEMail(settings.profile)
+    app = IZONEMail(Profile(settings.profile))
 
     # Check if profile is valid
     print(f'{Fore.BLUE}==>{Fore.RESET}{Style.BRIGHT} Retrieving user information')
@@ -79,7 +81,7 @@ def main():
     if not new_mails:
         print('Already up-to-date.')
         execute_handler(0)
-        return
+        return 0
 
     print(f'{len(new_mails)} new mails are available.\n')
 
@@ -114,8 +116,9 @@ def main():
 
     print('💌 IZ*ONE Mail Shelter is up to date.')
     execute_handler(n_downloaded)
+    return 0
 
 
 if __name__ == '__main__':
     init(autoreset=True)
-    main()
+    exit(main())

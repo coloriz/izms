@@ -1,5 +1,67 @@
 from datetime import datetime
-from typing import Sequence
+from pathlib import Path
+from typing import Sequence, NamedTuple, MutableMapping, Mapping, Optional, Iterator
+
+from bs4 import BeautifulSoup
+
+API_HOST = r'https://app-api.izone-mail.com'
+APP_HOST = r'https://app-web.izone-mail.com'
+
+
+class Profile(MutableMapping):
+    """A case-insensitive ``dict``-like object."""
+
+    _http_headers = frozenset({
+        'user-agent', 'accept-encoding', 'accept', 'accept-encoding', 'accept-language'
+    })
+    _required_keys = frozenset({
+        'user-id', 'access-token', 'os-type', 'application-version', 'terms-version'
+    })
+    _valid_keys = frozenset(
+        _http_headers | _required_keys | {'application-language', 'device-version', 'os-version'}
+    )
+
+    def __init__(self, data: Optional[Mapping[str, str]] = None, **kwargs):
+        self._store = {}
+        if data is None:
+            data = {}
+        self.update(data, **kwargs)
+
+    def __getitem__(self, key: str) -> str:
+        return self._store[key.lower()]
+
+    def __setitem__(self, key: str, value: str) -> None:
+        if not self.is_valid_key(key):
+            raise LookupError(key)
+        self._store[key.lower()] = value
+
+    def __delitem__(self, key: str) -> None:
+        del self._store[key.lower()]
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._store)
+
+    def __len__(self) -> int:
+        return len(self._store)
+
+    def __repr__(self) -> str:
+        return repr(self._store)
+
+    @classmethod
+    def required_keys(cls):
+        return cls._required_keys
+
+    @classmethod
+    def is_required_key(cls, key: str) -> bool:
+        return key.lower() in cls._required_keys
+
+    @classmethod
+    def valid_keys(cls):
+        return cls._valid_keys
+
+    @classmethod
+    def is_valid_key(cls, key: str) -> bool:
+        return key.lower() in cls._valid_keys
 
 
 class User:
@@ -100,3 +162,9 @@ class Inbox(Sequence):
 
     def __getitem__(self, i):
         return self.mails[i]
+
+
+class MailContainer(NamedTuple):
+    header: Mail
+    body: BeautifulSoup
+    path: Path

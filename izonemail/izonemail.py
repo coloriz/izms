@@ -1,13 +1,10 @@
 from datetime import datetime
-from typing import Dict, List, Mapping
+from typing import Dict, List
 
 from easydict import EasyDict
 from requests import Session
 
-from .model import User, Member, Team, Group, Mail, Inbox
-
-API_HOST = r'https://app-api.izone-mail.com'
-APP_HOST = r'https://app-web.izone-mail.com'
+from .models import API_HOST, Profile, User, Member, Team, Group, Mail, Inbox
 
 
 def create_member(m):
@@ -24,7 +21,7 @@ def create_mail(m):
 
 
 class IZONEMail:
-    def __init__(self, profile: Mapping[str, str]):
+    def __init__(self, profile: Profile):
         self._s = Session()
         self._s.headers.update(profile)
 
