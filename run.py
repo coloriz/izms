@@ -1,10 +1,12 @@
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
 
 from colorama import init, Fore, Style
 from easydict import EasyDict
 from requests import Session
+from tqdm import tqdm
 
 from izonemail import Profile, IZONEMail
 from izonemail import (
@@ -40,12 +42,12 @@ def main():
         if k not in settings.profile:
             print(f"❌️ Missing required key '{k}' in 'profile'!")
             return -1
-    print(json.dumps(settings, indent=2))
+    print(json.dumps(settings, indent=4))
 
     # File containing local last mail timestamp
     head_path = cwd / 'HEAD'
     head = bytes_to_datetime(head_path.read_bytes()) if head_path.is_file() else datetime.fromtimestamp(0)
-    print(f'📢 Current local HEAD: {head.isoformat()}\n')
+    print(f'📢 {Fore.CYAN}{Style.BRIGHT}HEAD -> {Fore.GREEN}{head.isoformat()}')
     # Mail download path
     mail_dir = Path(settings.download_path)
 
@@ -61,30 +63,27 @@ def main():
     app = IZONEMail(Profile(settings.profile))
 
     # Check if profile is valid
-    print(f'{Fore.BLUE}==>{Fore.RESET}{Style.BRIGHT} Retrieving user information')
+    print(f'\n{Fore.BLUE}==>{Fore.RESET}{Style.BRIGHT} Retrieving user information')
     user = app.get_user()
-    print(f'{user.id} / {user.nickname} / {user.gender} / {user.country_code} / {user.birthday}\n')
+    print(f'{user.id} / {user.nickname} / {user.gender} / {user.country_code} / {user.birthday}')
 
     # Retrieve the list of new mails
-    print(f'{Fore.MAGENTA}==>{Fore.RESET}{Style.BRIGHT} Retrieving new mails from inbox')
+    print(f'\n{Fore.MAGENTA}==>{Fore.RESET}{Style.BRIGHT} Retrieving new mails from inbox')
     new_mails = []
     caught_up = False
     page = 1
 
     while True:
         inbox = app.get_inbox(page)
-
         for mail in inbox:
             if mail.received <= head:
                 caught_up = True
                 break
             print(f'💌 Found new mail {mail.id}: {mail.member.name} / {mail.subject} / {mail.received}')
             new_mails.append(mail)
-
         # If we caught up or this inbox was the last one, break the loop
         if caught_up or not inbox.has_next_page:
             break
-
         page += 1
 
     if not new_mails:
@@ -92,8 +91,11 @@ def main():
         execute_handler(0)
         return 0
 
-    print(f'{len(new_mails)} new mails are available.\n')
+    n_total = len(new_mails)
+    print(f'{n_total} new mails are available.')
 
+    # Start downloading mails
+    print(f'\n{Fore.GREEN}==>{Fore.RESET}{Style.BRIGHT} Downloading new mails')
     # Create mail composer
     mail_composer = MailComposer()
     mail_composer += InsertMailHeaderCommand()
@@ -103,40 +105,41 @@ def main():
     mail_composer += ConvertImagesToBase64Command(Session())
 
     n_downloaded = 0
+    n_skipped = 0
 
     try:
-        # Start downloading from the oldest one
-        for mail in reversed(new_mails):
+        # Start from the oldest one
+        pbar = tqdm(reversed(new_mails), total=n_total)
+        for mail in pbar:
+            pbar.set_description(f'Processing {mail.id}')
             # Build file path and check if already exists
             mail_file = mail_dir / str(mail.member.id) / f'{mail.id}.html'
             if mail_file.is_file():
-                print(f"⚠️ The file '{mail_file}' already exists! Skipping...")
+                tqdm.write(f"⚠️ File '{mail_file}' already exists! Skipping...")
+                head = mail.received
+                n_skipped += 1
                 continue
-
-            print(f'{Fore.GREEN}==>{Fore.RESET}{Style.BRIGHT} Downloading {Fore.GREEN}{mail.detail_url}')
+            # Fetch mail detail
             mail_detail = app.get_mail_detail(mail)
-
             # Compose mail content
             content = mail_composer(user, mail, mail_detail, mail_dir)
-
-            print(f"{Fore.CYAN}==>{Fore.RESET}{Style.BRIGHT} Saving mail '{mail.id}' to \'{mail_file}\'")
+            # Save to specified path
             mail_file.parent.mkdir(parents=True, exist_ok=True)
             mail_file.write_text(content, encoding='utf-8')
-
             # Update HEAD
             head = mail.received
             n_downloaded += 1
     finally:
+        print(f'\n{Fore.CYAN}==>{Fore.RESET}{Style.BRIGHT} Summary')
+        print(f'Total: {n_total} / Downloaded: {n_downloaded} / Skipped: {n_skipped}')
         head_path.write_bytes(datetime_to_bytes(head))
-        print(f'{n_downloaded} mails downloaded.')
-        if n_downloaded < len(new_mails):
-            print('⚠️ Download interrupted!')
+        print(f'📢 {Fore.CYAN}{Style.BRIGHT}HEAD -> {Fore.GREEN}{head.isoformat()}')
 
-    print('💌 IZ*ONE Mail Shelter is up to date.')
+    print('\n💌 IZ*ONE Mail Shelter is up to date.')
     execute_handler(n_downloaded)
     return 0
 
 
 if __name__ == '__main__':
     init(autoreset=True)
-    exit(main())
+    sys.exit(main())

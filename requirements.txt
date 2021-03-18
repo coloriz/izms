@@ -3,3 +3,4 @@ colorama
 lxml
 requests
 easydict
+tqdm
