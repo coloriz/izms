@@ -1,7 +1,10 @@
+from pathlib import Path
 from typing import MutableSequence, Callable
 
+from bs4 import BeautifulSoup
+
 from .commands import ICommand
-from .models import MailContainer
+from .models import MailContainer, User, Mail
 
 
 class MailComposer(MutableSequence, Callable):
@@ -23,9 +26,22 @@ class MailComposer(MutableSequence, Callable):
     def __len__(self) -> int:
         return len(self._cmds)
 
-    def compose(self, mail: MailContainer):
-        for c in self._cmds:
-            c.execute(mail)
+    def __iadd__(self, other: ICommand):
+        self._cmds.append(other)
+        return self
 
-    def __call__(self, mail: MailContainer):
-        self.compose(mail)
+    def __isub__(self, other: ICommand):
+        self._cmds.remove(other)
+        return self
+
+    def compose(self, recipient: User, mail: Mail, body: str, root: Path) -> str:
+        soup = BeautifulSoup(body, 'lxml')
+        container = MailContainer(recipient, mail, soup, root)
+
+        for c in self._cmds:
+            c.execute(container)
+
+        return container.body.decode()
+
+    def __call__(self, recipient: User, mail: Mail, body: str, root: Path) -> str:
+        return self.compose(recipient, mail, body, root)

@@ -165,6 +165,7 @@ class Inbox(Sequence):
 
 
 class MailContainer(NamedTuple):
+    recipient: User
     header: Mail
     body: BeautifulSoup
     path: Path

@@ -90,7 +90,7 @@ header > * {
   width: 50px;
 }
 
-#mail-title {
+#mail-subject {
   padding: 1rem;
   font-size: 1.1rem;
   font-weight: bold;

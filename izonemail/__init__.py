@@ -5,6 +5,7 @@ from .__version__ import (
 from .models import Profile, User, Member, Team, Group, Mail, Inbox, MailContainer
 from .commands import (
     ICommand,
+    InsertMailHeaderCommand,
     RemoveAllStyleSheetCommand,
     EmbedStyleSheetCommand,
     RemoveAllJSCommand,
@@ -12,4 +13,3 @@ from .commands import (
 )
 from .composer import MailComposer
 from .izonemail import IZONEMail
-from .mailsaver import MailSaver

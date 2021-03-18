@@ -4,6 +4,7 @@ import base64
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from bs4 import BeautifulSoup
 from requests import Session
 
 from .models import MailContainer
@@ -13,6 +14,23 @@ class ICommand(ABC):
     @abstractmethod
     def execute(self, mail: MailContainer):
         ...
+
+
+class InsertMailHeaderCommand(ICommand):
+    """Insert mail header before mail body"""
+    _header_path = Path(__file__).resolve().parent / 'assets/mail_header.html'
+    _header = _header_path.read_text()
+
+    def execute(self, mail: MailContainer):
+        header = self._header.format_map({
+            'member_image': mail.header.member.image_url,
+            'sender': mail.header.member.name,
+            'received': mail.header.received.strftime('%Y/%m/%d %H:%M'),
+            'recipient': mail.recipient.nickname,
+            'subject': mail.header.subject,
+        })
+        header = BeautifulSoup(header, 'lxml').header
+        mail.body.select_one('#mail-detail').insert_before(header)
 
 
 class RemoveAllStyleSheetCommand(ICommand):

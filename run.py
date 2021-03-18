@@ -4,8 +4,17 @@ from pathlib import Path
 
 from colorama import init, Fore, Style
 from easydict import EasyDict
+from requests import Session
 
-from izonemail import Profile, IZONEMail, MailSaver
+from izonemail import Profile, IZONEMail
+from izonemail import (
+    MailComposer,
+    InsertMailHeaderCommand,
+    RemoveAllJSCommand,
+    RemoveAllStyleSheetCommand,
+    EmbedStyleSheetCommand,
+    ConvertImagesToBase64Command
+)
 from utils import execute_handler as _execute_handler, datetime_to_bytes, bytes_to_datetime
 
 
@@ -85,7 +94,14 @@ def main():
 
     print(f'{len(new_mails)} new mails are available.\n')
 
-    mail_saver = MailSaver(user.nickname)
+    # Create mail composer
+    mail_composer = MailComposer()
+    mail_composer += InsertMailHeaderCommand()
+    mail_composer += RemoveAllJSCommand()
+    mail_composer += RemoveAllStyleSheetCommand()
+    mail_composer += EmbedStyleSheetCommand()
+    mail_composer += ConvertImagesToBase64Command(Session())
+
     n_downloaded = 0
 
     try:
@@ -100,10 +116,12 @@ def main():
             print(f'{Fore.GREEN}==>{Fore.RESET}{Style.BRIGHT} Downloading {Fore.GREEN}{mail.detail_url}')
             mail_detail = app.get_mail_detail(mail)
 
+            # Compose mail content
+            content = mail_composer(user, mail, mail_detail, mail_dir)
+
             print(f"{Fore.CYAN}==>{Fore.RESET}{Style.BRIGHT} Saving mail '{mail.id}' to \'{mail_file}\'")
             mail_file.parent.mkdir(parents=True, exist_ok=True)
-            with mail_file.open('w', encoding='utf-8') as f:
-                mail_saver.dump(f, mail, mail_detail)
+            mail_file.write_text(content, encoding='utf-8')
 
             # Update HEAD
             head = mail.received

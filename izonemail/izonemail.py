@@ -64,7 +64,7 @@ class IZONEMail:
 
         return Inbox(r.page, r.has_next_page, [create_mail(m) for m in r.mails])
 
-    def get_mail_detail(self, mail: Mail) -> bytes:
+    def get_mail_detail(self, mail: Mail) -> str:
         r = self._s.get(mail.detail_url)
         r.raise_for_status()
-        return r.content
+        return r.text
