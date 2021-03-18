@@ -19,10 +19,10 @@ class ICommand(ABC):
 class InsertMailHeaderCommand(ICommand):
     """Insert mail header before mail body"""
     _header_path = Path(__file__).resolve().parent / 'assets/mail_header.html'
-    _header = _header_path.read_text()
+    _header_template = _header_path.read_text()
 
     def execute(self, mail: MailContainer):
-        header = self._header.format_map({
+        header = self._header_template.format_map({
             'member_image': mail.header.member.image_url,
             'sender': mail.header.member.name,
             'received': mail.header.received.strftime('%Y/%m/%d %H:%M'),
