@@ -5,7 +5,6 @@ from pathlib import Path
 
 from colorama import init, Fore, Style
 from easydict import EasyDict
-from requests import Session
 from tqdm import tqdm
 
 from izonemail import Profile, IZONEMail
@@ -15,9 +14,13 @@ from izonemail import (
     RemoveAllJSCommand,
     RemoveAllStyleSheetCommand,
     EmbedStyleSheetCommand,
-    ConvertImagesToBase64Command
+    ConvertAllImagesToBase64Command,
+    DumpAllImagesToLocalCommand,
 )
 from utils import execute_handler as _execute_handler, datetime_to_bytes, bytes_to_datetime
+
+REQUIRED_OPTS = frozenset({'download_path', 'profile'})
+KNOWN_OPTS = frozenset(REQUIRED_OPTS | {'image_to_base64'})
 
 
 def main():
@@ -31,7 +34,11 @@ def main():
     settings = EasyDict(json.loads(settings_path.read_text()))
 
     # User settings validation
-    for k in ['download_path', 'profile']:
+    for k in settings:
+        if k not in KNOWN_OPTS:
+            print(f"❌️ Unknown key '{k}' in '{settings_path.name}'!")
+            return -1
+    for k in REQUIRED_OPTS:
         if k not in settings:
             print(f"❌️ Missing key '{k}' in '{settings_path.name}'!")
             return -1
@@ -102,7 +109,10 @@ def main():
     mail_composer += RemoveAllJSCommand()
     mail_composer += RemoveAllStyleSheetCommand()
     mail_composer += EmbedStyleSheetCommand()
-    mail_composer += ConvertImagesToBase64Command(Session())
+    if settings.get('image_to_base64'):
+        mail_composer += ConvertAllImagesToBase64Command()
+    else:
+        mail_composer += DumpAllImagesToLocalCommand()
 
     n_downloaded = 0
     n_skipped = 0
@@ -122,7 +132,7 @@ def main():
             # Fetch mail detail
             mail_detail = app.get_mail_detail(mail)
             # Compose mail content
-            content = mail_composer(user, mail, mail_detail, mail_dir)
+            content = mail_composer(user, mail, mail_detail, mail_file)
             # Save to specified path
             mail_file.parent.mkdir(parents=True, exist_ok=True)
             mail_file.write_text(content, encoding='utf-8')

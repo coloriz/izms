@@ -9,7 +9,8 @@ from .commands import (
     RemoveAllStyleSheetCommand,
     EmbedStyleSheetCommand,
     RemoveAllJSCommand,
-    ConvertImagesToBase64Command,
+    ConvertAllImagesToBase64Command,
+    DumpAllImagesToLocalCommand,
 )
 from .composer import MailComposer
 from .izonemail import IZONEMail
