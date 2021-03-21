@@ -1,18 +1,21 @@
 from abc import ABC, abstractmethod
-from typing import Any, MutableMapping, MutableSet, Iterator, Optional, TypeVar, Callable
+from typing import Any, MutableMapping, MutableSet, Iterator, Optional, TypeVar, Callable, Tuple, Union
 
+TT = TypeVar('TT', type, Tuple[Union[type, Tuple[Any, ...]], ...])
 VT = TypeVar('VT', int, float, str, dict, type(None))
 
 
 class PureOption(ABC):
-    def __init__(self, name: str, default: Any, type_: type, required: bool):
+    def __init__(self, name: str, default: Any, type_: TT, required: bool):
         if not isinstance(name, str):
             raise TypeError(f"'name' must be str, not {type(name).__name__}")
         self._name = name
         self._default = default
-        if not isinstance(type_, type):
-            raise TypeError(f"'type_' must be type, not {type(type_).__name__}")
-        self._type = type_
+        if not isinstance(type_, (type, tuple)):
+            raise TypeError(f"'type_' must be type or tuple, not {type(type_).__name__}")
+        self._type = type_ if isinstance(type_, tuple) else (type_,)
+        if not len(self._type):
+            raise ValueError(f"'type_' cannot be empty")
         if not isinstance(required, bool):
             raise TypeError(f"'required' must be bool, not {type(required).__name__}")
         self._required = required
@@ -22,14 +25,36 @@ class PureOption(ABC):
     def name(self):
         return self._name
 
+    @property
+    def default(self):
+        return self._default
+
+    @property
+    def type(self):
+        return self._type
+
+    @property
+    def type_str(self):
+        if len(self.type) == 1:
+            return self.type[0].__name__
+        return '(' + ', '.join(t.__name__ for t in self.type) + ')'
+
+    @property
+    def required(self):
+        return self._required
+
+    @property
+    def parent(self):
+        return self._parent
+
     def __hash__(self):
         return hash(self.name)
 
     def __repr__(self):
         cls_name = type(self).__name__
-        parent = self._parent.name if self._parent else None
-        return f"{cls_name}(name={repr(self.name)}, default={repr(self._default)}, type={self._type.__name__}, " \
-               f"required={self._required}, parent={repr(parent)})"
+        parent = self.parent.name if self.parent else None
+        return f"{cls_name}(name={repr(self.name)}, default={repr(self.default)}, type={self.type_str}, " \
+               f"required={self.required}, parent={repr(parent)})"
 
     @abstractmethod
     def parse_options(self, opts: MutableMapping[str, VT]):
@@ -37,7 +62,7 @@ class PureOption(ABC):
 
 
 class Option(PureOption):
-    def __init__(self, name: str, default: Any = None, type: type = str, required: bool = False,
+    def __init__(self, name: str, default: Any = None, type: TT = str, required: bool = False,
                  validator: Callable[[Any], bool] = None):
         super(Option, self).__init__(name, default, type, required)
         self._validator = validator
@@ -47,17 +72,17 @@ class Option(PureOption):
     def parse_options(self, opts: MutableMapping[str, VT]):
         if self.name in opts:
             value = opts[self.name]
-            if not isinstance(value, self._type):
-                raise TypeError(f"'{self.name}' must be {self._type.__name__}, not {type(value).__name__}")
+            if not isinstance(value, self.type):
+                raise TypeError(f"'{self.name}' must be {self.type_str}, not {type(value).__name__}")
             if not self._validator(value):
                 raise ValueError(f"'{self.name}' cannot be {repr(value)}")
         else:
-            if self._required:
+            if self.required:
                 msg = f"Missing required key '{self.name}'"
-                if self._parent:
-                    msg += f" in '{self._parent.name}'"
+                if self.parent:
+                    msg += f" in '{self.parent.name}'"
                 raise KeyError(msg)
-            opts[self.name] = self._default
+            opts[self.name] = self.default
 
 
 class Options(PureOption, MutableSet[PureOption]):
@@ -85,20 +110,20 @@ class Options(PureOption, MutableSet[PureOption]):
     def parse_options(self, opts: MutableMapping[str, VT]):
         if self._parent:
             if self.name not in opts:
-                if self._required:
-                    raise KeyError(f"Missing required key '{self.name}' in '{self._parent.name}'")
-                opts[self.name] = self._default
+                if self.required:
+                    raise KeyError(f"Missing required key '{self.name}' in '{self.parent.name}'")
+                opts[self.name] = self.default
                 return
             opts = opts[self.name]
-        if not isinstance(opts, self._type):
-            raise TypeError(f"'{self.name}' must be {self._type.__name__}, not {type(opts).__name__}")
+        if not isinstance(opts, self.type):
+            raise TypeError(f"'{self.name}' must be {self.type_str}, not {type(opts).__name__}")
 
         known_keys = frozenset(map(lambda e: e.name, self))
         for k in opts:
             if k not in known_keys:
                 msg = f"Unknown key '{k}'"
                 if self._parent:
-                    msg += f" in '{self._parent.name}'"
+                    msg += f" in '{self.parent.name}'"
                 raise KeyError(msg)
         for opt in self:
             opt.parse_options(opts)
