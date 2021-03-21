@@ -145,11 +145,7 @@ dmypy.json
 ehthumbs.db
 Thumbs.db
 
-# user setting file
-user_settings.json
+# runtime leftovers
 /finish_hook.py
 /HEAD
-
-# downloaded data
-/css
-/mail
+/incoming/

@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -7,7 +8,6 @@ from colorama import init, Fore, Style
 from easydict import EasyDict
 from tqdm import tqdm
 
-from izonemail import Profile, IZONEMail
 from izonemail import (
     MailComposer,
     InsertMailHeaderCommand,
@@ -17,49 +17,50 @@ from izonemail import (
     ConvertAllImagesToBase64Command,
     DumpAllImagesToLocalCommand,
 )
+from izonemail import Profile, IZONEMail
+from options import Options, Option
 from utils import execute_handler as _execute_handler, datetime_to_bytes, bytes_to_datetime
-
-REQUIRED_OPTS = frozenset({'download_path', 'profile'})
-KNOWN_OPTS = frozenset(REQUIRED_OPTS | {'image_to_base64'})
 
 
 def main():
     cwd = Path(__file__).resolve().parent
-    # Read user settings
-    settings_path = cwd / 'user_settings.json'
-    print(f'{Fore.YELLOW}==>{Fore.RESET}{Style.BRIGHT} Parsing settings')
-    if not settings_path.is_file():
-        print(f"❌️ User setting '{settings_path.name}' missing!")
-        return -1
-    settings = EasyDict(json.loads(settings_path.read_text()))
+    # Read user config
+    config_path = cwd / 'config.json'
+    print(f'{Fore.YELLOW}==>{Fore.RESET}{Style.BRIGHT} Parsing configuration')
 
-    # User settings validation
-    for k in settings:
-        if k not in KNOWN_OPTS:
-            print(f"❌️ Unknown key '{k}' in '{settings_path.name}'!")
-            return -1
-    for k in REQUIRED_OPTS:
-        if k not in settings:
-            print(f"❌️ Missing key '{k}' in '{settings_path.name}'!")
-            return -1
-    for k in settings.profile:
-        if not Profile.is_valid_key(k):
-            print(f"❌️ Invalid key '{k}' in 'profile'!")
-    for k in Profile.required_keys():
-        if k not in settings.profile:
-            print(f"❌️ Missing required key '{k}' in 'profile'!")
-            return -1
-    print(json.dumps(settings, indent=4))
+    # Validate config
+    root = Options('root')
+    root.add(Option('download_path', required=True, validator=lambda s: len(s) > 0))
+    root.add(Option('image_to_base64', default=False, type=bool))
+    root.add(Option('finish_hook', validator=lambda s: len(s) > 0))
+
+    profile = Options('profile', required=True)
+    for k in Profile.valid_keys():
+        profile.add(Option(k, required=Profile.is_required_key(k)))
+    root.add(profile)
+
+    try:
+        config = EasyDict(json.loads(config_path.read_text()))
+        root.parse_options(config)
+    except FileNotFoundError as e:
+        print(f"❌️ Configuration file '{e.filename}' missing!")
+        return -1
+    except (KeyError, TypeError, ValueError) as e:
+        print(f"❌️ {e}")
+        return -2
+
+    # Print parsed config
+    print(json.dumps(config, indent=4))
 
     # File containing local last mail timestamp
     head_path = cwd / 'HEAD'
     head = bytes_to_datetime(head_path.read_bytes()) if head_path.is_file() else datetime.fromtimestamp(0)
     print(f'📢 {Fore.CYAN}{Style.BRIGHT}HEAD -> {Fore.GREEN}{head.isoformat()}')
     # Mail download path
-    mail_dir = Path(settings.download_path)
+    mail_dir = Path(config.download_path)
 
     def execute_handler(*args):
-        finish_hook = settings.get('finish_hook')
+        finish_hook = config.finish_hook
         if finish_hook is None:
             return
         returncode = _execute_handler(finish_hook, 'IZ*ONE Mail Shelter', *args)
@@ -67,7 +68,7 @@ def main():
             print(f'⚠️ The return code of finish hook is non-zero ({hex(returncode)})')
 
     # IZ*ONE Private Mail client
-    app = IZONEMail(Profile(settings.profile))
+    app = IZONEMail(Profile({k: v for k, v in config.profile.items() if v}))
 
     # Check if profile is valid
     print(f'\n{Fore.BLUE}==>{Fore.RESET}{Style.BRIGHT} Retrieving user information')
@@ -109,7 +110,7 @@ def main():
     mail_composer += RemoveAllJSCommand()
     mail_composer += RemoveAllStyleSheetCommand()
     mail_composer += EmbedStyleSheetCommand()
-    if settings.get('image_to_base64'):
+    if config.image_to_base64:
         mail_composer += ConvertAllImagesToBase64Command()
     else:
         mail_composer += DumpAllImagesToLocalCommand()

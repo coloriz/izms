@@ -1,0 +1,12 @@
+{
+  "download_path": "incoming",
+  "image_to_base64": false,
+  "profile": {
+    "user-id": "<USER ID>",
+    "access-token": "<ACCESS TOKEN>",
+    "os-type": "iOS",
+    "terms-version": "5",
+    "application-version": "1.2.3",
+    "application-language": "ko"
+  }
+}
