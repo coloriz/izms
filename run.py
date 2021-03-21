@@ -37,6 +37,8 @@ def main():
     root = Options('root')
     root.add(Option('download_path', required=True, validator=lambda s: len(s) > 0))
     root.add(Option('image_to_base64', default=False, type=bool))
+    root.add(Option('timeout', default=5, type=(int, float), validator=lambda t: t >= 0))
+    root.add(Option('max_retries', default=3, type=int, validator=lambda i: i >= 0))
     root.add(Option('finish_hook', validator=lambda s: len(s) > 0))
     profile = Options('profile', required=True)
     for k in Profile.valid_keys():
@@ -72,7 +74,8 @@ def main():
             print(f'⚠️ The return code of finish hook is non-zero ({hex(returncode)})')
 
     # IZ*ONE Private Mail client
-    app = IZONEMail(Profile({k: v for k, v in config.profile.items() if v}))
+    app = IZONEMail(Profile({k: v for k, v in config.profile.items() if v}),
+                    timeout=config.timeout, max_retries=config.max_retries)
 
     # Check if profile is valid
     print(f'\n{Fore.BLUE}==>{Fore.RESET}{Style.BRIGHT} Retrieving user information')

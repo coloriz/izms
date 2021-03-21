@@ -4,6 +4,7 @@ from typing import Dict, List
 from easydict import EasyDict
 from requests import Session
 
+from .adapters import TimeoutHTTPAdapter
 from .models import API_HOST, Profile, User, Member, Team, Group, Mail, Inbox
 
 
@@ -21,8 +22,11 @@ def create_mail(m):
 
 
 class IZONEMail:
-    def __init__(self, profile: Profile):
+    def __init__(self, profile: Profile, timeout: float = 5., max_retries: int = 3):
         self._s = Session()
+        adapter = TimeoutHTTPAdapter(timeout=timeout, max_retries=max_retries)
+        self._s.mount('https://', adapter)
+        self._s.mount('http://', adapter)
         self._s.headers.update(profile)
 
     def _get(self, url, **kwargs) -> Dict:
