@@ -47,7 +47,7 @@ def main():
     root.add(profile)
 
     try:
-        config = EasyDict(json.loads(config_path.read_text()))
+        config = EasyDict(json.loads(config_path.read_text(encoding='utf-8')))
         root.parse_options(config)
     except FileNotFoundError as e:
         print(f"❌️ Configuration file '{e.filename}' missing!")
