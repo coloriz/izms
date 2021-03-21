@@ -17,7 +17,7 @@ class ICommand(ABC):
 
 class InsertMailHeaderCommand(ICommand):
     """Insert mail header before mail body"""
-    _header_path = Path(__file__).resolve().parent / 'assets/mail_header.html'
+    _header_path = Path(__file__).resolve().parent / 'assets/mail_header.min.html'
     _header_template = _header_path.read_text(encoding='utf-8')
 
     def execute(self, mail: MailContainer):

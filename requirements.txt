@@ -4,4 +4,3 @@ lxml
 requests
 easydict
 tqdm
-minify-html

@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import MutableSequence, Callable
 
-import minify_html
 from bs4 import BeautifulSoup
 
 from .commands import ICommand
@@ -42,10 +41,7 @@ class MailComposer(MutableSequence, Callable):
         for c in self._cmds:
             c.execute(container)
 
-        html = container.body.decode()
-        html_min = minify_html.minify(html)
-
-        return html_min
+        return container.body.decode()
 
     def __call__(self, recipient: User, mail: Mail, body: str, root: Path) -> str:
         return self.compose(recipient, mail, body, root)
