@@ -18,7 +18,7 @@ class ICommand(ABC):
 class InsertMailHeaderCommand(ICommand):
     """Insert mail header before mail body"""
     _header_path = Path(__file__).resolve().parent / 'assets/mail_header.html'
-    _header_template = _header_path.read_text()
+    _header_template = _header_path.read_text(encoding='utf-8')
 
     def execute(self, mail: MailContainer):
         header = self._header_template.format_map({
@@ -43,8 +43,8 @@ class RemoveAllStyleSheetCommand(ICommand):
 
 class EmbedStyleSheetCommand(ICommand):
     """Embed stylesheet in markup"""
-    _stylesheet_path = Path(__file__).resolve().parent / 'assets/starship.css'
-    _stylesheet = _stylesheet_path.read_text()
+    _stylesheet_path = Path(__file__).resolve().parent / 'assets/starship.min.css'
+    _stylesheet = _stylesheet_path.read_text(encoding='utf-8')
 
     def execute(self, mail: MailContainer):
         style = mail.body.new_tag('style')
