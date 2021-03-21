@@ -5,13 +5,13 @@ from .__version__ import (
 from .models import Profile, User, Member, Team, Group, Mail, Inbox, MailContainer
 from .commands import (
     ICommand,
-    InsertMailHeaderCommand,
-    RemoveAllStyleSheetCommand,
-    EmbedStyleSheetCommand,
-    DumpStyleSheetToLocalCommand,
-    RemoveAllJSCommand,
-    ConvertAllImagesToBase64Command,
-    DumpAllImagesToLocalCommand,
+    InsertMailHeaderCommand as InsertMailHeader,
+    RemoveAllStyleSheetCommand as RemoveAllStyleSheet,
+    EmbedStyleSheetCommand as EmbedStyleSheet,
+    DumpStyleSheetToLocalCommand as DumpStyleSheetToLocal,
+    RemoveAllJSCommand as RemoveAllJS,
+    ConvertAllImagesToBase64Command as ConvertAllImagesToBase64,
+    DumpAllImagesToLocalCommand as DumpAllImagesToLocal,
 )
 from .composer import MailComposer
 from .izonemail import IZONEMail

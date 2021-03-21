@@ -22,9 +22,9 @@ def create_mail(m):
 
 
 class IZONEMail:
-    def __init__(self, profile: Profile, timeout: float = 5., max_retries: int = 3):
+    def __init__(self, profile: Profile, /, **kwargs):
         self._s = Session()
-        adapter = TimeoutHTTPAdapter(timeout=timeout, max_retries=max_retries)
+        adapter = TimeoutHTTPAdapter(**kwargs)
         self._s.mount('https://', adapter)
         self._s.mount('http://', adapter)
         self._s.headers.update(profile)

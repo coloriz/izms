@@ -11,13 +11,13 @@ from tqdm import tqdm
 
 from izonemail import (
     MailComposer,
-    InsertMailHeaderCommand,
-    RemoveAllJSCommand,
-    RemoveAllStyleSheetCommand,
-    EmbedStyleSheetCommand,
-    DumpStyleSheetToLocalCommand,
-    ConvertAllImagesToBase64Command,
-    DumpAllImagesToLocalCommand,
+    InsertMailHeader,
+    RemoveAllJS,
+    RemoveAllStyleSheet,
+    EmbedStyleSheet,
+    DumpStyleSheetToLocal,
+    ConvertAllImagesToBase64,
+    DumpAllImagesToLocal,
 )
 from izonemail import Profile, IZONEMail
 from options import Options, Option
@@ -79,9 +79,10 @@ def main():
         if returncode != 0:
             print(f'⚠️ The return code of finish hook is non-zero ({hex(returncode)})')
 
+    # requests session options
+    s_opts = {'timeout': config.timeout, 'max_retries': config.max_retries}
     # IZ*ONE Private Mail client
-    app = IZONEMail(Profile({k: v for k, v in config.profile.items() if v}),
-                    timeout=config.timeout, max_retries=config.max_retries)
+    app = IZONEMail(Profile({k: v for k, v in config.profile.items() if v}), **s_opts)
 
     # Check if profile is valid
     print(f'\n{Fore.BLUE}==>{Fore.RESET}{Style.BRIGHT} Retrieving user information')
@@ -119,11 +120,11 @@ def main():
     print(f'\n{Fore.GREEN}==>{Fore.RESET}{Style.BRIGHT} Downloading new mails')
     # Create mail composer
     mail_composer = MailComposer()
-    mail_composer += InsertMailHeaderCommand()
-    mail_composer += RemoveAllJSCommand()
-    mail_composer += RemoveAllStyleSheetCommand()
-    mail_composer += EmbedStyleSheetCommand() if config.embed_css else DumpStyleSheetToLocalCommand(config.css_path)
-    mail_composer += ConvertAllImagesToBase64Command() if config.image_to_base64 else DumpAllImagesToLocalCommand(config.image_path)
+    mail_composer += InsertMailHeader()
+    mail_composer += RemoveAllJS()
+    mail_composer += RemoveAllStyleSheet()
+    mail_composer += EmbedStyleSheet() if config.embed_css else DumpStyleSheetToLocal(config.css_path)
+    mail_composer += ConvertAllImagesToBase64(**s_opts) if config.image_to_base64 else DumpAllImagesToLocal(**s_opts)
 
     n_downloaded = 0
     n_skipped = 0

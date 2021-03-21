@@ -7,6 +7,7 @@ from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup, Tag
 from requests import Session, Response
 
+from .adapters import TimeoutHTTPAdapter
 from .models import MailContainer
 
 
@@ -83,8 +84,11 @@ class RemoveAllJSCommand(ICommand):
 
 class FetchAllImagesCommand(ICommand):
     """Fetch all images in markup"""
-    def __init__(self):
+    def __init__(self, **kwargs):
         self._s = Session()
+        adapter = TimeoutHTTPAdapter(**kwargs)
+        self._s.mount('https://', adapter)
+        self._s.mount('http://', adapter)
 
     def execute(self, mail: MailContainer):
         for e in mail.body.find_all('img'):
@@ -102,8 +106,8 @@ class FetchAllImagesCommand(ICommand):
 
 class ConvertAllImagesToBase64Command(FetchAllImagesCommand):
     """Convert all resources in markup to base64 encoded URI"""
-    def __init__(self):
-        super(ConvertAllImagesToBase64Command, self).__init__()
+    def __init__(self, **kwargs):
+        super(ConvertAllImagesToBase64Command, self).__init__(**kwargs)
 
     def _dump(self, mail: MailContainer, element: Tag, r: Response):
         content_type = r.headers.get('Content-Type') or 'image/jpeg'
@@ -113,8 +117,8 @@ class ConvertAllImagesToBase64Command(FetchAllImagesCommand):
 
 class DumpAllImagesToLocalCommand(FetchAllImagesCommand):
     """Dump all images in markup to local"""
-    def __init__(self, base_path: PathLike = 'img'):
-        super(DumpAllImagesToLocalCommand, self).__init__()
+    def __init__(self, base_path: PathLike = 'img', /, **kwargs):
+        super(DumpAllImagesToLocalCommand, self).__init__(**kwargs)
         self._base_path = Path(base_path)
 
     def _dump(self, mail: MailContainer, element: Tag, r: Response):
