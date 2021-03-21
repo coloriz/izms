@@ -1,5 +1,6 @@
 import base64
 from abc import ABC, abstractmethod
+from os import PathLike
 from pathlib import Path
 from urllib.parse import urlparse, urljoin
 
@@ -91,9 +92,9 @@ class ConvertAllImagesToBase64Command(FetchAllImagesCommand):
 
 class DumpAllImagesToLocalCommand(FetchAllImagesCommand):
     """Dump all images in markup to local"""
-    def __init__(self):
+    def __init__(self, base_path: PathLike = 'img'):
         super(DumpAllImagesToLocalCommand, self).__init__()
-        self._base_path = Path('img')
+        self._base_path = Path(base_path)
 
     def _dump(self, mail: MailContainer, element: Tag, r: Response):
         # Filename is "[parent]_[filename]"

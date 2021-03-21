@@ -1,6 +1,7 @@
 {
-  "download_path": "incoming",
+  "mail_path": "incoming/{member_id}/{mail_id}.html",
   "image_to_base64": false,
+  "image_path": "img",
   "profile": {
     "user-id": "<USER ID>",
     "access-token": "<ACCESS TOKEN>",

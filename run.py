@@ -35,8 +35,9 @@ def main():
     print(f'{Fore.YELLOW}==>{Fore.RESET}{Style.BRIGHT} Parsing configuration')
     # Validate config
     root = Options('root')
-    root.add(Option('download_path', required=True, validator=lambda s: len(s) > 0))
+    root.add(Option('mail_path', required=True, validator=lambda s: len(s) > 0))
     root.add(Option('image_to_base64', default=False, type=bool))
+    root.add(Option('image_path', default='img'))
     root.add(Option('timeout', default=5, type=(int, float), validator=lambda t: t >= 0))
     root.add(Option('max_retries', default=3, type=int, validator=lambda i: i >= 0))
     root.add(Option('finish_hook', validator=lambda s: len(s) > 0))
@@ -62,8 +63,6 @@ def main():
     head_path = cwd / 'HEAD'
     head = bytes_to_datetime(head_path.read_bytes()) if head_path.is_file() else datetime.fromtimestamp(0)
     print(f'📢 {Fore.CYAN}{Style.BRIGHT}HEAD -> {Fore.GREEN}{head.isoformat()}')
-    # Mail download path
-    mail_dir = Path(config.download_path)
 
     def execute_handler(*args):
         finish_hook = config.finish_hook
@@ -120,7 +119,7 @@ def main():
     if config.image_to_base64:
         mail_composer += ConvertAllImagesToBase64Command()
     else:
-        mail_composer += DumpAllImagesToLocalCommand()
+        mail_composer += DumpAllImagesToLocalCommand(config.image_path)
 
     n_downloaded = 0
     n_skipped = 0
@@ -131,7 +130,14 @@ def main():
         for mail in pbar:
             pbar.set_description(f'Processing {mail.id}')
             # Build file path and check if already exists
-            mail_file = mail_dir / str(mail.member.id) / f'{mail.id}.html'
+            mail_path = config.mail_path.format_map({
+                'member_id': mail.member.id,
+                'member_name': mail.member.name,
+                'mail_id': mail.id,
+                'received': mail.received,
+                'subject': mail.subject,
+            })
+            mail_file = Path(mail_path)
             if mail_file.is_file():
                 tqdm.write(f"⚠️ File '{mail_file}' already exists! Skipping...")
                 head = mail.received
