@@ -1,6 +1,6 @@
 import json
-import os
 import sys
+from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
 
@@ -24,16 +24,20 @@ from utils import execute_handler as _execute_handler, datetime_to_bytes, bytes_
 
 def main():
     cwd = Path(__file__).resolve().parent
-    # Read user config
-    config_path = cwd / 'config.json'
-    print(f'{Fore.YELLOW}==>{Fore.RESET}{Style.BRIGHT} Parsing configuration')
+    default_config_path = cwd / 'config.json'
+    parser = ArgumentParser(prog='IZ*ONE Mail Shelter')
+    parser.add_argument('-c', '--config', default=default_config_path, type=Path, metavar='<file>',
+                        help='Specify a JSON-format text file to read user configurations from.')
+    args = parser.parse_args()
 
+    # Parse user config
+    config_path = args.config
+    print(f'{Fore.YELLOW}==>{Fore.RESET}{Style.BRIGHT} Parsing configuration')
     # Validate config
     root = Options('root')
     root.add(Option('download_path', required=True, validator=lambda s: len(s) > 0))
     root.add(Option('image_to_base64', default=False, type=bool))
     root.add(Option('finish_hook', validator=lambda s: len(s) > 0))
-
     profile = Options('profile', required=True)
     for k in Profile.valid_keys():
         profile.add(Option(k, required=Profile.is_required_key(k)))
