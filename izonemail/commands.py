@@ -66,6 +66,8 @@ class FetchAllImagesCommand(ICommand):
 
     def execute(self, mail: MailContainer):
         for e in mail.body.find_all('img'):
+            if e['src'].startswith('data:'):
+                continue
             url = e['src'] if urlparse(e['src']).netloc else urljoin(mail.header.detail_url, e['src'])
             r = self._s.get(url)
             r.raise_for_status()
