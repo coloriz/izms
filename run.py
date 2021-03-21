@@ -1,4 +1,5 @@
 import json
+import pickle
 import sys
 from argparse import ArgumentParser
 from datetime import datetime
@@ -36,7 +37,7 @@ def main():
     print(f'{Fore.YELLOW}==>{Fore.RESET}{Style.BRIGHT} Parsing configuration')
     # Validate config
     root = Options('root')
-    root.add(Option('mail_path', required=True, validator=lambda s: len(s) > 0))
+    root.add(Option('mail_path', required=True))
     root.add(Option('embed_css', default=False, type=bool))
     root.add(Option('css_path', default='../css'))
     root.add(Option('image_to_base64', default=False, type=bool))
@@ -66,6 +67,9 @@ def main():
     head_path = cwd / 'HEAD'
     head = bytes_to_datetime(head_path.read_bytes()) if head_path.is_file() else datetime.fromtimestamp(0)
     print(f'📢 {Fore.CYAN}{Style.BRIGHT}HEAD -> {Fore.GREEN}{head.isoformat()}')
+    # Index file
+    index_path = cwd / 'INDEX'
+    index = pickle.loads(index_path.read_bytes()) if index_path.is_file() else set()
 
     def execute_handler(*args):
         finish_hook = config.finish_hook
@@ -93,7 +97,7 @@ def main():
     while True:
         inbox = app.get_inbox(page)
         for mail in inbox:
-            if mail.received <= head:
+            if mail.id in index:
                 caught_up = True
                 break
             print(f'💌 Found new mail {mail.id}: {mail.member.name} / {mail.subject} / {mail.received}')
@@ -141,6 +145,7 @@ def main():
             if mail_file.is_file():
                 tqdm.write(f"⚠️ File '{mail_file}' already exists! Skipping...")
                 head = mail.received
+                index.add(mail.id)
                 n_skipped += 1
                 continue
             # Fetch mail detail
@@ -152,11 +157,14 @@ def main():
             mail_file.write_text(content, encoding='utf-8')
             # Update HEAD
             head = mail.received
+            # Update INDEX
+            index.add(mail.id)
             n_downloaded += 1
     finally:
         print(f'\n{Fore.CYAN}==>{Fore.RESET}{Style.BRIGHT} Summary')
         print(f'Total: {n_total} / Downloaded: {n_downloaded} / Skipped: {n_skipped}')
         head_path.write_bytes(datetime_to_bytes(head))
+        index_path.write_bytes(pickle.dumps(index))
         print(f'📢 {Fore.CYAN}{Style.BRIGHT}HEAD -> {Fore.GREEN}{head.isoformat()}')
 
     print('\n💌 IZ*ONE Mail Shelter is up to date.')

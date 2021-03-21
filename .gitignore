@@ -148,4 +148,5 @@ Thumbs.db
 # runtime leftovers
 /finish_hook.py
 /HEAD
+/INDEX
 /incoming/
