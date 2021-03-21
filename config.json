@@ -1,5 +1,7 @@
 {
   "mail_path": "incoming/{member_id}/{mail_id}.html",
+  "embed_css": false,
+  "css_path": "../css",
   "image_to_base64": false,
   "image_path": "img",
   "profile": {

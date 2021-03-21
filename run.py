@@ -14,6 +14,7 @@ from izonemail import (
     RemoveAllJSCommand,
     RemoveAllStyleSheetCommand,
     EmbedStyleSheetCommand,
+    DumpStyleSheetToLocalCommand,
     ConvertAllImagesToBase64Command,
     DumpAllImagesToLocalCommand,
 )
@@ -36,6 +37,8 @@ def main():
     # Validate config
     root = Options('root')
     root.add(Option('mail_path', required=True, validator=lambda s: len(s) > 0))
+    root.add(Option('embed_css', default=False, type=bool))
+    root.add(Option('css_path', default='../css'))
     root.add(Option('image_to_base64', default=False, type=bool))
     root.add(Option('image_path', default='img'))
     root.add(Option('timeout', default=5, type=(int, float), validator=lambda t: t >= 0))
@@ -115,11 +118,8 @@ def main():
     mail_composer += InsertMailHeaderCommand()
     mail_composer += RemoveAllJSCommand()
     mail_composer += RemoveAllStyleSheetCommand()
-    mail_composer += EmbedStyleSheetCommand()
-    if config.image_to_base64:
-        mail_composer += ConvertAllImagesToBase64Command()
-    else:
-        mail_composer += DumpAllImagesToLocalCommand(config.image_path)
+    mail_composer += EmbedStyleSheetCommand() if config.embed_css else DumpStyleSheetToLocalCommand(config.css_path)
+    mail_composer += ConvertAllImagesToBase64Command() if config.image_to_base64 else DumpAllImagesToLocalCommand(config.image_path)
 
     n_downloaded = 0
     n_skipped = 0

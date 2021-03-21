@@ -53,6 +53,27 @@ class EmbedStyleSheetCommand(ICommand):
         mail.body.head.append(style)
 
 
+class DumpStyleSheetToLocalCommand(ICommand):
+    """Dump stylesheet to local"""
+    _stylesheet_path = Path(__file__).resolve().parent / 'assets/starship.min.css'
+    _stylesheet = _stylesheet_path.read_text(encoding='utf-8')
+
+    def __init__(self, base_path: PathLike = '../css'):
+        self._base_path = Path(base_path)
+
+    def execute(self, mail: MailContainer):
+        filename = self._stylesheet_path.name
+        file = mail.path.parent / self._base_path / filename
+        link = mail.body.new_tag('link')
+        link['rel'] = 'stylesheet'
+        link['href'] = str(file.relative_to(mail.path.parent)).replace('\\', '/')
+        mail.body.head.append(link)
+        if file.is_file():
+            return
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_text(self._stylesheet, encoding='utf-8')
+
+
 class RemoveAllJSCommand(ICommand):
     """Remove all javascript blocks in markup"""
     def execute(self, mail: MailContainer):

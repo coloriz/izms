@@ -8,6 +8,7 @@ from .commands import (
     InsertMailHeaderCommand,
     RemoveAllStyleSheetCommand,
     EmbedStyleSheetCommand,
+    DumpStyleSheetToLocalCommand,
     RemoveAllJSCommand,
     ConvertAllImagesToBase64Command,
     DumpAllImagesToLocalCommand,
