@@ -43,22 +43,22 @@ class RemoveAllStyleSheetCommand(ICommand):
             e.decompose()
 
 
-class EmbedStyleSheetCommand(ICommand):
-    """Embed stylesheet in markup"""
+class StyleSheetCommon:
+    """Contains stylesheet and its path"""
     _stylesheet_path = Path(__file__).resolve().parent / 'assets/starship.min.css'
     _stylesheet = _stylesheet_path.read_text(encoding='utf-8')
 
+
+class EmbedStyleSheetCommand(ICommand, StyleSheetCommon):
+    """Embed stylesheet in markup"""
     def execute(self, mail: MailContainer):
         style = mail.body.new_tag('style')
         style.string = self._stylesheet
         mail.body.head.append(style)
 
 
-class DumpStyleSheetToLocalCommand(ICommand):
+class DumpStyleSheetToLocalCommand(ICommand, StyleSheetCommon):
     """Dump stylesheet to local"""
-    _stylesheet_path = Path(__file__).resolve().parent / 'assets/starship.min.css'
-    _stylesheet = _stylesheet_path.read_text(encoding='utf-8')
-
     def __init__(self, base_path: PathLike = '../css'):
         self._base_path = Path(base_path)
 
