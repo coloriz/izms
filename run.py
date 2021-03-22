@@ -23,11 +23,19 @@ from izonemail import Profile, IZONEMail
 from options import Options, Option
 from utils import execute_handler as _execute_handler, datetime_to_bytes, bytes_to_datetime
 
+__title__ = 'izone-mail-shelter'
+__url__ = 'https://github.com/coloriz/izone-mail-shelter'
+__version__ = '2021.03.22'
+__author__ = 'coloriz'
+__author_email__ = 'nunu3041@gmail.com'
+__license__ = 'MIT'
+__copyright__ = 'Copyright 2021 coloriz'
+
 
 def main():
     cwd = Path(__file__).resolve().parent
     default_config_path = cwd / 'config.json'
-    parser = ArgumentParser(prog='IZ*ONE Mail Shelter')
+    parser = ArgumentParser(prog=f'IZ*ONE Mail Shelter v{__version__}')
     parser.add_argument('-c', '--config', default=default_config_path, type=Path, metavar='<file>',
                         help='Specify a JSON-format text file to read user configurations from.')
     args = parser.parse_args()

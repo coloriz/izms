@@ -1,4 +1,4 @@
-# IZ*ONE Mail Shelter (for backup)
+# IZ*ONE Mail Shelter
 
 IZ\*ONE Mail Shelter is a Python program for pulling data out of IZ\*ONE Private Mail App server and saving as an HTML file.
 It automatically recognize the difference between your local backup directory and the server inbox,
