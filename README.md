@@ -236,7 +236,7 @@ REST API 요청에 사용되는 헤더를 정의합니다. key는 모두 소문�
 
 
   - 기타 optional header: `device-version`, `os-version`
-  - 기타 HTTP header: `user-agent`, `accept-encoding`, `accept`, `accept-encoding`, `accept-language`
+  - 기타 HTTP header: `user-agent`, `accept-encoding`, `accept`, `accept-language`
 
 #### `timeout` (`float`, default: 5)
 HTTP 요청 timeout (초)

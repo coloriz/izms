@@ -12,7 +12,7 @@ class Profile(MutableMapping):
     """A case-insensitive ``dict``-like object."""
 
     _http_headers = frozenset({
-        'user-agent', 'accept-encoding', 'accept', 'accept-encoding', 'accept-language'
+        'user-agent', 'accept-encoding', 'accept', 'accept-language'
     })
     _required_keys = frozenset({
         'user-id', 'access-token', 'os-type', 'application-version', 'terms-version'
