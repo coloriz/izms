@@ -23,7 +23,7 @@ from izonemail import Profile, IZONEMail
 from options import Options, Option
 from utils import execute_handler as _execute_handler, datetime_to_bytes, bytes_to_datetime
 
-__title__ = 'izone-mail-shelter'
+__title__ = 'IZ*ONE Mail Shelter'
 __url__ = 'https://github.com/coloriz/izone-mail-shelter'
 __version__ = '2021.03.22'
 __author__ = 'coloriz'
@@ -35,11 +35,12 @@ __copyright__ = 'Copyright 2021 coloriz'
 def main():
     cwd = Path(__file__).resolve().parent
     default_config_path = cwd / 'config.json'
-    parser = ArgumentParser(prog=f'IZ*ONE Mail Shelter v{__version__}')
+    parser = ArgumentParser(description=f'{__title__} v{__version__} by {__author__}')
     parser.add_argument('-c', '--config', default=default_config_path, type=Path, metavar='<file>',
                         help='Specify a JSON-format text file to read user configurations from.')
     args = parser.parse_args()
 
+    print(f'{__title__} version {__version__} ({__url__})\n')
     # Parse user config
     config_path = args.config
     print(f'{Fore.YELLOW}==>{Fore.RESET}{Style.BRIGHT} Parsing configuration')
@@ -73,7 +74,7 @@ def main():
 
     # File containing local last mail timestamp
     head_path = cwd / 'HEAD'
-    head = bytes_to_datetime(head_path.read_bytes()) if head_path.is_file() else datetime.fromtimestamp(0)
+    head = bytes_to_datetime(head_path.read_bytes()) if head_path.is_file() else datetime.fromisoformat('2018-10-29T20:00')
     print(f'📢 {Fore.CYAN}{Style.BRIGHT}HEAD -> {Fore.GREEN}{head.isoformat()}')
     # Index file
     index_path = cwd / 'INDEX'
@@ -176,7 +177,7 @@ def main():
         index_path.write_bytes(pickle.dumps(index))
         print(f'📢 {Fore.CYAN}{Style.BRIGHT}HEAD -> {Fore.GREEN}{head.isoformat()}')
 
-    print('\n💌 IZ*ONE Mail Shelter is up to date.')
+    print(f'\n🎉 {__title__} is up to date.')
     execute_handler(n_downloaded)
     return 0
 
