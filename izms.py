@@ -84,7 +84,7 @@ def main():
         finish_hook = config.finish_hook
         if finish_hook is None:
             return
-        returncode = _execute_handler(finish_hook, 'IZ*ONE Mail Shelter', *args)
+        returncode = _execute_handler(finish_hook, __title__, *args)
         if returncode != 0:
             print(f'⚠️ The return code of finish hook is non-zero ({hex(returncode)})')
 
