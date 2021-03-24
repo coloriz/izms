@@ -2,13 +2,12 @@ name: Docker Image CI/CD
 
 on:
   push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+    tags:
+      - 'v*'
 
 env:
-  IMAGE_NAME: izone-mail-shelter
-  ARCHIVE_NAME: izone-mail-shelter-${{ github.run_number }}.tar.gz
+  IMAGE_NAME: izms
+  ARCHIVE_NAME: izms-${{ github.run_number }}.tar.gz
 
 jobs:
   build:

@@ -1,0 +1,64 @@
+name: Bundle and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: Bundle scripts
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [3.8]
+
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+    - name: Bundle with PyInstaller
+      run: |
+        PATHSEP=$(python -c "import os; print(os.pathsep)")
+        pyinstaller --onefile --add-data "izonemail/assets${PATHSEP}izonemail/assets" --icon "docs/izms-logo_256x256.ico" izms.py
+        cp config.json README.md dist/
+    - name: Archive build
+      id: archive
+      run: |
+        PKG_NAME=$(python -c "import sys; from izms import __version__; print(f'izms-v{__version__}-{sys.platform}')")
+        ARCHIVE="${PKG_NAME}.zip"
+        echo "::set-output name=filename::$ARCHIVE"
+        mv dist "$PKG_NAME"
+        python -m zipfile -c "$ARCHIVE" "$PKG_NAME"
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: executables
+        path: ${{ steps.archive.outputs.filename }}
+
+  release:
+    name: Release executables
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: executables
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: '*.zip'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
