@@ -21,7 +21,7 @@ from izonemail import (
 )
 from izonemail import Profile, IZONEMail
 from options import Options, Option
-from utils import execute_handler as _execute_handler, datetime_to_bytes, bytes_to_datetime
+from utils import execute_handler as _execute_handler, datetime_to_bytes, bytes_to_datetime, slugify
 
 __title__ = 'IZ*ONE Mail Shelter'
 __url__ = 'https://github.com/coloriz/izone-mail-shelter'
@@ -151,7 +151,8 @@ def main():
                 'received': mail.received,
                 'subject': mail.subject,
             })
-            mail_file = Path(mail_path)
+            # Remove forbidden filename characters
+            mail_file = Path(*map(slugify, Path(mail_path).parts))
             if mail_file.is_file():
                 tqdm.write(f"⚠️ File '{mail_file}' already exists! Skipping...")
                 head = mail.received
