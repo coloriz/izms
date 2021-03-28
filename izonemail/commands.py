@@ -9,6 +9,7 @@ from requests import Session, Response
 
 from .adapters import TimeoutHTTPAdapter
 from .models import MailContainer
+from .__version__ import __title__, __version__
 
 
 class ICommand(ABC):
@@ -32,6 +33,38 @@ class InsertMailHeaderCommand(ICommand):
         })
         header = BeautifulSoup(header, 'lxml').header
         mail.body.select_one('#mail-detail').insert_before(header)
+
+
+class RemoveAllMetaTagsCommand(ICommand):
+    """Remove all meta tag from markup"""
+    def execute(self, mail: MailContainer):
+        for e in mail.body.find_all('meta'):
+            e.decompose()
+
+
+class InsertAppMetadataCommand(ICommand):
+    """Insert charset, viewport, app metadata"""
+    def execute(self, mail: MailContainer):
+        app_meta = {
+            'name': 'application-name',
+            'content': __title__,
+            'data-version': __version__,
+            'data-member-id': f'{mail.header.member.id}',
+            'data-id': mail.header.id,
+            'data-subject': mail.header.subject,
+            'data-content': mail.header.content,
+            'data-received': mail.header.received.isoformat(' '),
+        }
+        meta_tags = [
+            mail.body.new_tag('meta', attrs={'charset': 'utf-8'}),
+            mail.body.new_tag('meta', attrs=app_meta),
+            mail.body.new_tag('meta', attrs={
+                'name': 'viewport',
+                'content': 'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1'
+            }),
+        ]
+        for tag in meta_tags:
+            mail.body.head.append(tag)
 
 
 class RemoveAllStyleSheetCommand(ICommand):

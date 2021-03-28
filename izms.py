@@ -12,6 +12,8 @@ from tqdm import tqdm
 from izonemail import (
     MailComposer,
     InsertMailHeader,
+    RemoveAllMetaTags,
+    InsertAppMetadata,
     RemoveAllJS,
     RemoveAllStyleSheet,
     EmbedStyleSheet,
@@ -25,7 +27,7 @@ from utils import execute_handler as _execute_handler, datetime_to_bytes, bytes_
 
 __title__ = 'IZ*ONE Mail Shelter'
 __url__ = 'https://github.com/coloriz/izone-mail-shelter'
-__version__ = '2021.03.22'
+__version__ = '2021.03.28'
 __author__ = 'coloriz'
 __author_email__ = 'nunu3041@gmail.com'
 __license__ = 'MIT'
@@ -129,6 +131,8 @@ def main():
     print(f'\n{Fore.GREEN}==>{Fore.RESET}{Style.BRIGHT} Downloading new mails')
     # Create mail composer
     mail_composer = MailComposer()
+    mail_composer += RemoveAllMetaTags()
+    mail_composer += InsertAppMetadata()
     mail_composer += InsertMailHeader()
     mail_composer += RemoveAllJS()
     mail_composer += RemoveAllStyleSheet()

@@ -6,6 +6,8 @@ from .models import Profile, User, Member, Team, Group, Mail, Inbox, MailContain
 from .commands import (
     ICommand,
     InsertMailHeaderCommand as InsertMailHeader,
+    RemoveAllMetaTagsCommand as RemoveAllMetaTags,
+    InsertAppMetadataCommand as InsertAppMetadata,
     RemoveAllStyleSheetCommand as RemoveAllStyleSheet,
     EmbedStyleSheetCommand as EmbedStyleSheet,
     DumpStyleSheetToLocalCommand as DumpStyleSheetToLocal,
