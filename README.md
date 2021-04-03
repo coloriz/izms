@@ -55,7 +55,7 @@ Charles, Wireshark, Burp Suite등의 SSL 패킷 캡처 툴을 이용하여 알�
 
 아래는 `user-id`, `access-token`을 입력한 완전한 `config.json`의 예시입니다.
 
-**Example config.json**
+**Example - config.json**
 ```json
 {
   "mail_path": "incoming/{member_id}/{mail_id}.html",
@@ -159,7 +159,7 @@ IZMS 실행을 위해선 `config.json` 파일이 실행파일과 같은 위치�
 }
 // 메일 저장 경로 : incoming/미야와키 사쿠라/20210322_🥺💗🌸.html
 ```
-> 메일 제목에 이모지가 포함되어 있는 경우가 많습니다. 경우에 따라 운영체제는 이모지가 들어간 파일명을 제대로 핸들링하지 못 할 수 있으니
+> ⚠️ 메일 제목에 이모지가 포함되어 있는 경우가 많습니다. 경우에 따라 운영체제는 이모지가 들어간 파일명을 제대로 핸들링하지 못 할 수 있으니
 > 메일 제목을 파일명으로 사용하는 것은 그다지 추천하지 않습니다.
 
 **메일을 멤버 단위가 아닌 수신일로 분류하기**

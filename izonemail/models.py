@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Sequence, NamedTuple, MutableMapping, Mapping, Optional, Iterator
+from typing import Sequence, NamedTuple, MutableMapping, Mapping, Optional, Iterator, MutableSequence
 
 from bs4 import BeautifulSoup
 
@@ -164,8 +164,14 @@ class Inbox(Sequence):
         return self.mails[i]
 
 
-class MailContainer(NamedTuple):
+class Artifact(NamedTuple):
+    path: Path
+    data: bytes
+
+
+class ComposerPayload(NamedTuple):
     recipient: User
     header: Mail
     body: BeautifulSoup
     path: Path
+    artifacts: MutableSequence[Artifact]

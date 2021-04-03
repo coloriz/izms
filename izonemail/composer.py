@@ -1,15 +1,19 @@
+from os import PathLike
 from pathlib import Path
-from typing import MutableSequence, Callable
+from typing import MutableSequence, Union
 
 from bs4 import BeautifulSoup
 
 from .commands import ICommand
-from .models import MailContainer, User, Mail
+from .models import ComposerPayload, User, Mail
+from .utils import naive_join, slugify
 
 
-class MailComposer(MutableSequence, Callable):
-    def __init__(self):
+class MailComposer(MutableSequence):
+    def __init__(self, root: Union[str, PathLike], mail_path_fmt: str):
         self._cmds: MutableSequence[ICommand] = []
+        self._root = Path(root)
+        self._mail_path_fmt = mail_path_fmt
 
     def insert(self, index: int, value: ICommand) -> None:
         self._cmds.insert(index, value)
@@ -34,14 +38,24 @@ class MailComposer(MutableSequence, Callable):
         self._cmds.remove(other)
         return self
 
-    def compose(self, recipient: User, mail: Mail, body: str, root: Path) -> str:
+    def compose(self, recipient: User, mail: Mail, body: str) -> str:
         soup = BeautifulSoup(body, 'lxml')
-        container = MailContainer(recipient, mail, soup, root)
+        path = Path(self._mail_path_fmt.format_map({
+            'member_id': mail.member.id,
+            'member_name': mail.member.name,
+            'mail_id': mail.id,
+            'received': mail.received,
+            'subject': slugify(mail.subject)
+        }))
+        payload = ComposerPayload(recipient, mail, soup, path, [])
 
         for c in self._cmds:
-            c.execute(container)
+            c.execute(payload)
 
-        return container.body.decode()
+        # Save composing artifacts if any
+        for item in payload.artifacts:
+            artifact_path = naive_join(self._root, item.path)
+            artifact_path.parent.mkdir(parents=True, exist_ok=True)
+            artifact_path.write_bytes(item.data)
 
-    def __call__(self, recipient: User, mail: Mail, body: str, root: Path) -> str:
-        return self.compose(recipient, mail, body, root)
+        return payload.body.decode()

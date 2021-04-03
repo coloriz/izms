@@ -8,7 +8,7 @@
 __title__ = 'izone-mail-client'
 __description__ = 'IZ*ONE Private Mail App Python Client.'
 __url__ = 'https://github.com/coloriz/izone-mail-shelter'
-__version__ = '2021.03.28'
+__version__ = '2021.04.03'
 __author__ = 'coloriz'
 __author_email__ = 'nunu3041@gmail.com'
 __license__ = 'MIT'

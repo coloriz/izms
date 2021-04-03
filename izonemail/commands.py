@@ -1,20 +1,22 @@
-import base64
 from abc import ABC, abstractmethod
+from functools import lru_cache
 from os import PathLike
+from os.path import relpath
 from pathlib import Path
+from typing import Union
 from urllib.parse import urlparse, urljoin
 
-from bs4 import BeautifulSoup, Tag
-from requests import Session, Response
+from bs4 import BeautifulSoup
 
-from .adapters import TimeoutHTTPAdapter
-from .models import MailContainer
 from .__version__ import __title__, __version__
+from .factory import SessionFactory
+from .models import Artifact, ComposerPayload
+from .utils import naive_join, response_to_base64, as_posix
 
 
 class ICommand(ABC):
     @abstractmethod
-    def execute(self, mail: MailContainer):
+    def execute(self, mail: ComposerPayload):
         ...
 
 
@@ -23,9 +25,31 @@ class InsertMailHeaderCommand(ICommand):
     _header_path = Path(__file__).resolve().parent / 'assets/mail_header.min.html'
     _header_template = _header_path.read_text(encoding='utf-8')
 
-    def execute(self, mail: MailContainer):
+    def __init__(self, profile_image_root: Union[str, PathLike, None] = '/'):
+        self._s = SessionFactory.instance()
+        self._profile_image_root = profile_image_root
+        if self._profile_image_root is not None:
+            self._profile_image_root = Path(self._profile_image_root)
+
+    @lru_cache
+    def _get(self, url, **kwargs):
+        r = self._s.get(url, **kwargs)
+        r.raise_for_status()
+        return r
+
+    def execute(self, mail: ComposerPayload):
+        r = self._get(mail.header.member.image_url)
+
+        if self._profile_image_root:
+            path = Path(urlparse(mail.header.member.image_url).path)
+            path = naive_join(self._profile_image_root, path)
+            mail.artifacts.append(Artifact(path, r.content))
+            url = as_posix(relpath(path, mail.path.parent))
+        else:
+            url = response_to_base64(r)
+
         header = self._header_template.format_map({
-            'member_image': mail.header.member.image_url,
+            'member_image': url,
             'sender': mail.header.member.name,
             'received': mail.header.received.strftime('%Y/%m/%d %H:%M'),
             'recipient': mail.recipient.nickname,
@@ -37,14 +61,14 @@ class InsertMailHeaderCommand(ICommand):
 
 class RemoveAllMetaTagsCommand(ICommand):
     """Remove all meta tag from markup"""
-    def execute(self, mail: MailContainer):
+    def execute(self, mail: ComposerPayload):
         for e in mail.body.find_all('meta'):
             e.decompose()
 
 
 class InsertAppMetadataCommand(ICommand):
     """Insert charset, viewport, app metadata"""
-    def execute(self, mail: MailContainer):
+    def execute(self, mail: ComposerPayload):
         app_meta = {
             'name': 'application-name',
             'content': __title__,
@@ -69,100 +93,73 @@ class InsertAppMetadataCommand(ICommand):
 
 class RemoveAllStyleSheetCommand(ICommand):
     """Remove all css from markup"""
-    def execute(self, mail: MailContainer):
+    def execute(self, mail: ComposerPayload):
         for e in mail.body.find_all('link', attrs={'rel': 'stylesheet'}):
             e.decompose()
         for e in mail.body.find_all('style'):
             e.decompose()
 
 
-class StyleSheetCommon:
-    """Contains stylesheet and its path"""
+class DumpStyleSheetCommand(ICommand):
+    """Dump stylesheet to local or embed in markup"""
     _stylesheet_path = Path(__file__).resolve().parent / 'assets/starship.min.css'
     _stylesheet = _stylesheet_path.read_text(encoding='utf-8')
 
+    def __init__(self, css_root: Union[str, PathLike, None] = '/css'):
+        self._css_root = css_root
+        if self._css_root is not None:
+            self._css_root = Path(self._css_root)
 
-class EmbedStyleSheetCommand(ICommand, StyleSheetCommon):
-    """Embed stylesheet in markup"""
-    def execute(self, mail: MailContainer):
-        style = mail.body.new_tag('style')
-        style.string = self._stylesheet
-        mail.body.head.append(style)
+    def execute(self, mail: ComposerPayload):
+        if self._css_root:
+            path = self._css_root / self._stylesheet_path.name
+            mail.artifacts.append(Artifact(path, self._stylesheet.encode('utf-8')))
+            url = as_posix(relpath(path, mail.path.parent))
 
+            tag = mail.body.new_tag('link')
+            tag['rel'] = 'stylesheet'
+            tag['href'] = url
+        else:
+            tag = mail.body.new_tag('style')
+            tag.string = self._stylesheet
 
-class DumpStyleSheetToLocalCommand(ICommand, StyleSheetCommon):
-    """Dump stylesheet to local"""
-    def __init__(self, base_path: PathLike = '../css'):
-        self._base_path = Path(base_path)
-
-    def execute(self, mail: MailContainer):
-        filename = self._stylesheet_path.name
-        file = mail.path.parent / self._base_path / filename
-        link = mail.body.new_tag('link')
-        link['rel'] = 'stylesheet'
-        link['href'] = str(file.relative_to(mail.path.parent)).replace('\\', '/')
-        mail.body.head.append(link)
-        if file.is_file():
-            return
-        file.parent.mkdir(parents=True, exist_ok=True)
-        file.write_text(self._stylesheet, encoding='utf-8')
+        mail.body.head.append(tag)
 
 
 class RemoveAllJSCommand(ICommand):
     """Remove all javascript blocks in markup"""
-    def execute(self, mail: MailContainer):
+    def execute(self, mail: ComposerPayload):
         for e in mail.body.find_all('script'):
             e.decompose()
 
 
-class FetchAllImagesCommand(ICommand):
+class DumpAllImagesCommand(ICommand):
     """Fetch all images in markup"""
-    def __init__(self, **kwargs):
-        self._s = Session()
-        adapter = TimeoutHTTPAdapter(**kwargs)
-        self._s.mount('https://', adapter)
-        self._s.mount('http://', adapter)
+    def __init__(self, img_root: Union[str, PathLike, None] = '/img'):
+        self._s = SessionFactory.instance()
+        self._img_root = img_root
+        if self._img_root is not None:
+            self._img_root = Path(self._img_root)
 
-    def execute(self, mail: MailContainer):
+    def execute(self, mail: ComposerPayload):
         for e in mail.body.find_all('img'):
             if e['src'].startswith('data:'):
                 continue
             url = e['src'] if urlparse(e['src']).netloc else urljoin(mail.header.detail_url, e['src'])
             r = self._s.get(url)
             r.raise_for_status()
-            self._dump(mail, e, r)
 
-    @abstractmethod
-    def _dump(self, mail: MailContainer, element: Tag, r: Response):
-        pass
+            if self._img_root:
+                parts = urlparse(url).path.split('/')
+                path = naive_join(self._img_root, Path(*parts[-3:]))
+                mail.artifacts.append(Artifact(path, r.content))
+                url = as_posix(relpath(path, mail.path.parent))
+            else:
+                url = response_to_base64(r)
 
-
-class ConvertAllImagesToBase64Command(FetchAllImagesCommand):
-    """Convert all resources in markup to base64 encoded URI"""
-    def __init__(self, **kwargs):
-        super(ConvertAllImagesToBase64Command, self).__init__(**kwargs)
-
-    def _dump(self, mail: MailContainer, element: Tag, r: Response):
-        content_type = r.headers.get('Content-Type') or 'image/jpeg'
-        encoded_body = base64.b64encode(r.content)
-        element['src'] = f'data:{content_type};base64,{encoded_body.decode()}'
+            e['src'] = url
 
 
-class DumpAllImagesToLocalCommand(FetchAllImagesCommand):
-    """Dump all images in markup to local"""
-    def __init__(self, base_path: PathLike = 'img', /, **kwargs):
-        super(DumpAllImagesToLocalCommand, self).__init__(**kwargs)
-        self._base_path = Path(base_path)
-
-    def _dump(self, mail: MailContainer, element: Tag, r: Response):
-        # Filename is "[parent]_[filename]"
-        filename = '_'.join(Path(urlparse(element['src']).path).parts[-2:])
-        # Local resource path
-        file = mail.path.parent / self._base_path / filename
-        # Set image source relative to mail's path
-        element['src'] = str(file.relative_to(mail.path.parent)).replace('\\', '/')
-        # Save to local
-        if file.is_file():
-            return
-        file.parent.mkdir(parents=True, exist_ok=True)
-        file.write_bytes(r.content)
+class DumpMailMarkupCommand(ICommand):
+    def execute(self, mail: ComposerPayload):
+        mail.artifacts.append(Artifact(mail.path, mail.body.encode()))

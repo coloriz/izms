@@ -63,19 +63,17 @@ class PureOption(ABC):
 
 class Option(PureOption):
     def __init__(self, name: str, default: Any = None, type: TT = str, required: bool = False,
-                 validator: Callable[[Any], bool] = None):
+                 validator: Callable[[str, Any], None] = None):
         super(Option, self).__init__(name, default, type, required)
         self._validator = validator
-        if self._validator is None:
-            self._validator = lambda _: True
 
     def parse_options(self, opts: MutableMapping[str, VT]):
         if self.name in opts:
             value = opts[self.name]
             if not isinstance(value, self.type):
                 raise TypeError(f"'{self.name}' must be {self.type_str}, not {type(value).__name__}")
-            if not self._validator(value):
-                raise ValueError(f"'{self.name}' cannot be {repr(value)}")
+            if self._validator:
+                self._validator(self.name, value)
         else:
             if self.required:
                 msg = f"Missing required key '{self.name}'"

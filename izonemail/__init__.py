@@ -2,18 +2,18 @@ from .__version__ import (
     __title__, __description__, __url__, __version__,
     __author__, __author_email__, __license__, __copyright__,
 )
-from .models import Profile, User, Member, Team, Group, Mail, Inbox, MailContainer
+from .models import Profile, User, Member, Team, Group, Mail, Inbox, ComposerPayload
 from .commands import (
     ICommand,
     InsertMailHeaderCommand as InsertMailHeader,
     RemoveAllMetaTagsCommand as RemoveAllMetaTags,
     InsertAppMetadataCommand as InsertAppMetadata,
     RemoveAllStyleSheetCommand as RemoveAllStyleSheet,
-    EmbedStyleSheetCommand as EmbedStyleSheet,
-    DumpStyleSheetToLocalCommand as DumpStyleSheetToLocal,
+    DumpStyleSheetCommand as DumpStyleSheet,
     RemoveAllJSCommand as RemoveAllJS,
-    ConvertAllImagesToBase64Command as ConvertAllImagesToBase64,
-    DumpAllImagesToLocalCommand as DumpAllImagesToLocal,
+    DumpAllImagesCommand as DumpAllImages,
+    DumpMailMarkupCommand as DumpMailMarkup
 )
 from .composer import MailComposer
 from .izonemail import IZONEMail
+from .factory import SessionFactory

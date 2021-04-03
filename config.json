@@ -1,9 +1,9 @@
 {
-  "mail_path": "incoming/{member_id}/{mail_id}.html",
-  "embed_css": false,
-  "css_path": "../css",
-  "image_to_base64": false,
-  "image_path": "img",
+  "destination": "incoming",
+  "mail_path": "/mail/{member_id}/{mail_id}.html",
+  "profile_image_path": "/",
+  "css_path": "/css",
+  "image_path": "/img",
   "profile": {
     "user-id": "<USER ID>",
     "access-token": "<ACCESS TOKEN>",

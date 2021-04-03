@@ -9,25 +9,32 @@ from colorama import init, Fore, Style
 from easydict import EasyDict
 from tqdm import tqdm
 
+from adapters import TimeoutHTTPAdapter
 from izonemail import (
     MailComposer,
     InsertMailHeader,
     RemoveAllMetaTags,
     InsertAppMetadata,
-    RemoveAllJS,
     RemoveAllStyleSheet,
-    EmbedStyleSheet,
-    DumpStyleSheetToLocal,
-    ConvertAllImagesToBase64,
-    DumpAllImagesToLocal,
+    DumpStyleSheet,
+    RemoveAllJS,
+    DumpAllImages,
+    DumpMailMarkup,
 )
-from izonemail import Profile, IZONEMail
+from izonemail import Profile, IZONEMail, SessionFactory
 from options import Options, Option
-from utils import execute_handler as _execute_handler, datetime_to_bytes, bytes_to_datetime, slugify
+from utils import (
+    execute_handler as _execute_handler,
+    datetime_to_bytes,
+    bytes_to_datetime,
+    is_ge_zero,
+    is_abspath,
+    is_abspath_or_none,
+)
 
 __title__ = 'IZ*ONE Mail Shelter'
 __url__ = 'https://github.com/coloriz/izone-mail-shelter'
-__version__ = '2021.03.28'
+__version__ = '2021.04.05'
 __author__ = 'coloriz'
 __author_email__ = 'nunu3041@gmail.com'
 __license__ = 'MIT'
@@ -48,14 +55,14 @@ def main():
     print(f'{Fore.YELLOW}==>{Fore.RESET}{Style.BRIGHT} Parsing configuration')
     # Validate config
     root = Options('root')
-    root.add(Option('mail_path', required=True))
-    root.add(Option('embed_css', default=False, type=bool))
-    root.add(Option('css_path', default='../css'))
-    root.add(Option('image_to_base64', default=False, type=bool))
-    root.add(Option('image_path', default='img'))
-    root.add(Option('timeout', default=5, type=(int, float), validator=lambda t: t >= 0))
-    root.add(Option('max_retries', default=3, type=int, validator=lambda i: i >= 0))
-    root.add(Option('finish_hook', validator=lambda s: len(s) > 0))
+    root.add(Option('destination', default='incoming'))
+    root.add(Option('mail_path', required=True, validator=is_abspath))
+    root.add(Option('profile_image_path', default='/', type=(str, type(None)), validator=is_abspath_or_none))
+    root.add(Option('css_path', default='/css', type=(str, type(None)), validator=is_abspath_or_none))
+    root.add(Option('image_path', default='/img', type=(str, type(None)), validator=is_abspath_or_none))
+    root.add(Option('timeout', default=5, type=(int, float), validator=is_ge_zero))
+    root.add(Option('max_retries', default=3, type=int, validator=is_ge_zero))
+    root.add(Option('finish_hook'))
     profile = Options('profile', required=True)
     for k in Profile.valid_keys():
         profile.add(Option(k, required=Profile.is_required_key(k)))
@@ -90,10 +97,13 @@ def main():
         if returncode != 0:
             print(f'⚠️ The return code of finish hook is non-zero ({hex(returncode)})')
 
-    # requests session options
-    s_opts = {'timeout': config.timeout, 'max_retries': config.max_retries}
+    # Global session options
+    s = SessionFactory.instance()
+    adapter = TimeoutHTTPAdapter(timeout=config.timeout, max_retries=config.max_retries)
+    s.mount('https://', adapter)
+    s.mount('http://', adapter)
     # IZ*ONE Private Mail client
-    app = IZONEMail(Profile({k: v for k, v in config.profile.items() if v}), **s_opts)
+    app = IZONEMail(Profile({k: v for k, v in config.profile.items() if v}))
 
     # Check if profile is valid
     print(f'\n{Fore.BLUE}==>{Fore.RESET}{Style.BRIGHT} Retrieving user information')
@@ -130,46 +140,27 @@ def main():
     # Start downloading mails
     print(f'\n{Fore.GREEN}==>{Fore.RESET}{Style.BRIGHT} Downloading new mails')
     # Create mail composer
-    mail_composer = MailComposer()
+    mail_composer = MailComposer(config.destination, config.mail_path)
     mail_composer += RemoveAllMetaTags()
-    mail_composer += InsertAppMetadata()
-    mail_composer += InsertMailHeader()
     mail_composer += RemoveAllJS()
     mail_composer += RemoveAllStyleSheet()
-    mail_composer += EmbedStyleSheet() if config.embed_css else DumpStyleSheetToLocal(config.css_path)
-    mail_composer += ConvertAllImagesToBase64(**s_opts) if config.image_to_base64 else DumpAllImagesToLocal(**s_opts)
+    mail_composer += InsertAppMetadata()
+    mail_composer += DumpStyleSheet(config.css_path)
+    mail_composer += DumpAllImages(config.image_path)
+    mail_composer += InsertMailHeader(config.profile_image_path)
+    mail_composer += DumpMailMarkup()
 
     n_downloaded = 0
-    n_skipped = 0
 
     try:
         # Start from the oldest one
         pbar = tqdm(reversed(new_mails), total=n_total)
         for mail in pbar:
             pbar.set_description(f'Processing {mail.id}')
-            # Build file path and check if already exists
-            mail_path = config.mail_path.format_map({
-                'member_id': mail.member.id,
-                'member_name': mail.member.name,
-                'mail_id': mail.id,
-                'received': mail.received,
-                'subject': mail.subject,
-            })
-            # Remove forbidden filename characters
-            mail_file = Path(*map(slugify, Path(mail_path).parts))
-            if mail_file.is_file():
-                tqdm.write(f"⚠️ File '{mail_file}' already exists! Skipping...")
-                head = mail.received
-                index.add(mail.id)
-                n_skipped += 1
-                continue
             # Fetch mail detail
             mail_detail = app.get_mail_detail(mail)
-            # Compose mail content
-            content = mail_composer(user, mail, mail_detail, mail_file)
-            # Save to specified path
-            mail_file.parent.mkdir(parents=True, exist_ok=True)
-            mail_file.write_text(content, encoding='utf-8')
+            # Compose mail content and save
+            mail_composer.compose(user, mail, mail_detail)
             # Update HEAD
             head = mail.received
             # Update INDEX
@@ -177,7 +168,7 @@ def main():
             n_downloaded += 1
     finally:
         print(f'\n{Fore.CYAN}==>{Fore.RESET}{Style.BRIGHT} Summary')
-        print(f'Total: {n_total} / Downloaded: {n_downloaded} / Skipped: {n_skipped}')
+        print(f'Total: {n_total} / Downloaded: {n_downloaded}')
         head_path.write_bytes(datetime_to_bytes(head))
         index_path.write_bytes(pickle.dumps(index))
         print(f'📢 {Fore.CYAN}{Style.BRIGHT}HEAD -> {Fore.GREEN}{head.isoformat()}')

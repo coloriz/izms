@@ -1,11 +1,7 @@
-import re
 import struct
 import subprocess
 import sys
 from datetime import datetime
-
-# Set up regular expressions
-re_fc = re.compile(r'[<>:\"/\\|?*]')  # Forbidden printable ASCII characters in file path
 
 
 def execute_handler(handler: str, *args) -> int:
@@ -38,6 +34,17 @@ def bytes_to_datetime(b: bytes):
     return datetime.fromtimestamp(struct.unpack('<Q', b)[0])
 
 
-def slugify(s):
-    s = re_fc.sub('_', s)
-    return s.strip()
+def is_ge_zero(name, val):
+    if val < 0:
+        raise ValueError(f"'{name}' must be zero or positive number")
+
+
+def is_abspath(name, val):
+    if not val.startswith('/'):
+        raise ValueError(f"'{name}' must start with '/'")
+
+
+def is_abspath_or_none(name, val):
+    if val is None:
+        return
+    is_abspath(name, val)
