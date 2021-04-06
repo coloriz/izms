@@ -4,10 +4,14 @@
 
 IZ*ONE Mail Shelter (IZMS)는 아이즈원 프라이빗 메일 앱에서 받은 메일들을 HTML 형식으로 로컬에 다운로드하는 파이썬 프로그램입니다.
 
+병렬 다운로드를 지원하여 1초당 50개 이상의 메일을 다운로드할 수 있습니다.
 첫 실행 후에는 로컬에 설정한 백업 디렉토리와 서버 메일함과의 차이를 비교하여 새로운 메일만 추가적으로 다운로드합니다.
 본 리포는 아이즈원 프라이빗 메일 클라이언트 라이브러리 `IZONEMail` 클래스와 그것을 이용한 백업 스크립트 `izms.py`로 구성되어 있습니다.
 
 ## Changelog
+
+**2021.04.07**
+- 병렬 다운로드 지원 (`max_workers` 옵션)
 
 **2021.04.05**
 - 모든 파일의 root path인 `destination` 옵션 추가
@@ -70,6 +74,7 @@ Charles, Wireshark, Burp Suite등의 SSL 패킷 캡처 툴을 이용하여 알�
   "profile_image_path": "/",
   "css_path": "/css",
   "image_path": "/img",
+  "max_workers": 8,
   "profile": {
     "user-id": "57crzfhy4is0",
     "access-token": "klcr55c7000k82f1603oa6al",
@@ -265,6 +270,9 @@ HTTP 요청 timeout (초)
 
 #### `max_retries` (`int`, default: 3)
 HTTP 요청 실패시 최대 재시도 횟수
+
+#### `max_workers` (`int`, default: 8)
+HTTP 요청과 저장을 수행하는 스레드 개수
 
 #### `finish_hook` (`str`)
 프로그램 종료시 호출될 핸들러 경로 (args: "program name" "num of downloaded mails")
