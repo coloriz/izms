@@ -33,7 +33,7 @@ IZ*ONE Mail Shelter (IZMS)는 아이즈원 프라이빗 메일 앱에서 받은 
 ## 시작하기
 
 IZMS는 다음 환경에서 테스트 되었습니다.
-- Python 3.7~
+- Python 3.9~
 - macOS 10.15~
 - Windows 10
 - Ubuntu 20.04 64-bit
