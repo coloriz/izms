@@ -39,6 +39,11 @@ def is_ge_zero(name, val):
         raise ValueError(f"'{name}' must be zero or positive number")
 
 
+def is_gt_zero(name, val):
+    if val <= 0:
+        raise ValueError(f"'{name}' must be greater than 0")
+
+
 def is_abspath(name, val):
     if not val.startswith('/'):
         raise ValueError(f"'{name}' must start with '/'")

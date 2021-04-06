@@ -55,7 +55,14 @@ class MailComposer(MutableSequence):
         # Save composing artifacts if any
         for item in payload.artifacts:
             artifact_path = naive_join(self._root, item.path)
+            # Double-check presence of files due to the absence of exclusive access
+            if artifact_path.is_file():
+                continue
             artifact_path.parent.mkdir(parents=True, exist_ok=True)
-            artifact_path.write_bytes(item.data)
+            try:
+                with artifact_path.open('xb') as f:
+                    f.write(item.data)
+            except FileExistsError:
+                pass
 
         return payload.body.decode()

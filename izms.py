@@ -2,6 +2,7 @@ import json
 import pickle
 import sys
 from argparse import ArgumentParser
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 
@@ -28,13 +29,14 @@ from utils import (
     datetime_to_bytes,
     bytes_to_datetime,
     is_ge_zero,
+    is_gt_zero,
     is_abspath,
     is_abspath_or_none,
 )
 
 __title__ = 'IZ*ONE Mail Shelter'
 __url__ = 'https://github.com/coloriz/izone-mail-shelter'
-__version__ = '2021.04.05'
+__version__ = '2021.04.07'
 __author__ = 'coloriz'
 __author_email__ = 'nunu3041@gmail.com'
 __license__ = 'MIT'
@@ -62,6 +64,7 @@ def main():
     root.add(Option('image_path', default='/img', type=(str, type(None)), validator=is_abspath_or_none))
     root.add(Option('timeout', default=5, type=(int, float), validator=is_ge_zero))
     root.add(Option('max_retries', default=3, type=int, validator=is_ge_zero))
+    root.add(Option('max_workers', default=8, type=int, validator=is_gt_zero))
     root.add(Option('finish_hook'))
     profile = Options('profile', required=True)
     for k in Profile.valid_keys():
@@ -134,6 +137,8 @@ def main():
         execute_handler(0)
         return 0
 
+    # Reverse order (from the oldest)
+    new_mails = new_mails[::-1]
     n_total = len(new_mails)
     print(f'{n_total} new mails are available.')
 
@@ -150,31 +155,38 @@ def main():
     mail_composer += InsertMailHeader(config.profile_image_path)
     mail_composer += DumpMailMarkup()
 
-    n_downloaded = 0
+    downloaded_mails = set()
+
+    def process_mail(mail):
+        mail_detail = app.get_mail_detail(mail)
+        mail_composer.compose(user, mail, mail_detail)
+        return mail
+
+    executor = ThreadPoolExecutor(max_workers=config.max_workers)
+    futures = [executor.submit(process_mail, mail) for mail in new_mails]
+    pbar = tqdm(as_completed(futures), total=n_total)
 
     try:
-        # Start from the oldest one
-        pbar = tqdm(reversed(new_mails), total=n_total)
-        for mail in pbar:
+        for future in pbar:
+            mail = future.result()
             pbar.set_description(f'Processing {mail.id}')
-            # Fetch mail detail
-            mail_detail = app.get_mail_detail(mail)
-            # Compose mail content and save
-            mail_composer.compose(user, mail, mail_detail)
-            # Update HEAD
-            head = mail.received
-            # Update INDEX
-            index.add(mail.id)
-            n_downloaded += 1
+            downloaded_mails.add(mail)
     finally:
-        print(f'\n{Fore.CYAN}==>{Fore.RESET}{Style.BRIGHT} Summary')
-        print(f'Total: {n_total} / Downloaded: {n_downloaded}')
+        executor.shutdown(wait=True, cancel_futures=True)
+        # Discard any mail that has been downloaded after error occured
+        for mail in new_mails:
+            if mail not in downloaded_mails:
+                break
+            head = mail.received
+            index.add(mail.id)
         head_path.write_bytes(datetime_to_bytes(head))
         index_path.write_bytes(pickle.dumps(index))
+        print(f'\n{Fore.CYAN}==>{Fore.RESET}{Style.BRIGHT} Summary')
+        print(f'Total: {n_total} / Downloaded: {len(downloaded_mails)}')
         print(f'📢 {Fore.CYAN}{Style.BRIGHT}HEAD -> {Fore.GREEN}{head.isoformat()}')
 
     print(f'\n🎉 {__title__} is up to date.')
-    execute_handler(n_downloaded)
+    execute_handler(len(downloaded_mails))
     return 0
 
 

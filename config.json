@@ -4,6 +4,7 @@
   "profile_image_path": "/",
   "css_path": "/css",
   "image_path": "/img",
+  "max_workers": 8,
   "profile": {
     "user-id": "<USER ID>",
     "access-token": "<ACCESS TOKEN>",
