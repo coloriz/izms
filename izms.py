@@ -43,7 +43,7 @@ __copyright__ = 'Copyright 2021 coloriz'
 
 
 def main():
-    cwd = Path(__file__).resolve().parent
+    cwd = Path(sys.argv[0]).resolve().parent
     default_config_path = cwd / 'config.json'
     parser = ArgumentParser(description=f'{__title__} v{__version__} by {__author__}')
     parser.add_argument('-c', '--config', default=default_config_path, type=Path, metavar='<file>',

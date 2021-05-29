@@ -18,7 +18,7 @@ class SessionFactory:
 
 
 class AssetFactory:
-    _asset_path = Path(__file__).resolve().parent / 'assets'
+    _asset_path = Path(__file__).parent / 'assets'
     _custom_assets = {}
 
     @classmethod
