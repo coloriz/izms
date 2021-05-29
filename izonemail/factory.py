@@ -46,7 +46,7 @@ class PolicyFactory:
             if p['bundle_id'] == bundle_id:
                 break
         else:
-            raise ValueError(f'Unknown bundle id: {repr(bundle_id)}.'
+            raise ValueError(f'Unknown bundle id: {repr(bundle_id)}. '
                              f'possible values: {[p["bundle_id"] for p in cls._policies]}')
 
         genesis = datetime.fromisoformat(p['genesis'])
