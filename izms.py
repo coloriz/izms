@@ -3,7 +3,6 @@ import pickle
 import sys
 from argparse import ArgumentParser
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
 from pathlib import Path
 
 from colorama import init, Fore, Style
@@ -22,7 +21,7 @@ from izonemail import (
     DumpAllImages,
     DumpMailMarkup,
 )
-from izonemail import Profile, IZONEMail, SessionFactory
+from izonemail import Profile, IZONEMail, SessionFactory, PolicyFactory
 from options import Options, Option
 from utils import (
     execute_handler as _execute_handler,
@@ -36,7 +35,7 @@ from utils import (
 
 __title__ = 'IZ*ONE Mail Shelter'
 __url__ = 'https://github.com/coloriz/izone-mail-shelter'
-__version__ = '2021.04.07'
+__version__ = '2021.05.29'
 __author__ = 'coloriz'
 __author_email__ = 'nunu3041@gmail.com'
 __license__ = 'MIT'
@@ -57,6 +56,7 @@ def main():
     print(f'{Fore.YELLOW}==>{Fore.RESET}{Style.BRIGHT} Parsing configuration')
     # Validate config
     root = Options('root')
+    root.add(Option('bundle_id', default='com.ca-smart.izonemail'))
     root.add(Option('destination', default='incoming'))
     root.add(Option('mail_path', required=True, validator=is_abspath))
     root.add(Option('profile_image_path', default='/', type=(str, type(None)), validator=is_abspath_or_none))
@@ -65,6 +65,8 @@ def main():
     root.add(Option('timeout', default=5, type=(int, float), validator=is_ge_zero))
     root.add(Option('max_retries', default=3, type=int, validator=is_ge_zero))
     root.add(Option('max_workers', default=8, type=int, validator=is_gt_zero))
+    root.add(Option('head', default='HEAD'))
+    root.add(Option('index', default='INDEX'))
     root.add(Option('finish_hook'))
     profile = Options('profile', required=True)
     for k in Profile.valid_keys():
@@ -72,24 +74,25 @@ def main():
     root.add(profile)
 
     try:
-        config = EasyDict(json.loads(config_path.read_text(encoding='utf-8')))
+        config = EasyDict(json.loads(config_path.read_text('utf-8')))
         root.parse_options(config)
+        policy = PolicyFactory.get(config.bundle_id)
     except FileNotFoundError as e:
-        print(f"❌️ Configuration file '{e.filename}' missing!")
+        print(f"❌️ File '{e.filename}' missing!", file=sys.stderr)
         return -1
     except (KeyError, TypeError, ValueError) as e:
-        print(f"❌️ {e}")
+        print(f"❌️ {e}", file=sys.stderr)
         return -2
 
     # Print parsed config
     print(json.dumps(config, indent=4))
 
     # File containing local last mail timestamp
-    head_path = cwd / 'HEAD'
-    head = bytes_to_datetime(head_path.read_bytes()) if head_path.is_file() else datetime.fromisoformat('2018-10-29T20:00')
+    head_path = cwd / config.head
+    head = bytes_to_datetime(head_path.read_bytes()) if head_path.is_file() else policy.genesis
     print(f'📢 {Fore.CYAN}{Style.BRIGHT}HEAD -> {Fore.GREEN}{head.isoformat()}')
     # Index file
-    index_path = cwd / 'INDEX'
+    index_path = cwd / config.index
     index = pickle.loads(index_path.read_bytes()) if index_path.is_file() else set()
 
     def execute_handler(*args):
@@ -98,7 +101,7 @@ def main():
             return
         returncode = _execute_handler(finish_hook, __title__, *args)
         if returncode != 0:
-            print(f'⚠️ The return code of finish hook is non-zero ({hex(returncode)})')
+            print(f'⚠️ The return code of finish hook is non-zero ({hex(returncode)})', file=sys.stderr)
 
     # Global session options
     s = SessionFactory.instance()
@@ -106,7 +109,7 @@ def main():
     s.mount('https://', adapter)
     s.mount('http://', adapter)
     # IZ*ONE Private Mail client
-    app = IZONEMail(Profile({k: v for k, v in config.profile.items() if v}))
+    app = IZONEMail(policy.api_host, Profile({k: v for k, v in config.profile.items() if v}))
 
     # Check if profile is valid
     print(f'\n{Fore.BLUE}==>{Fore.RESET}{Style.BRIGHT} Retrieving user information')
@@ -150,9 +153,9 @@ def main():
     mail_composer += RemoveAllJS()
     mail_composer += RemoveAllStyleSheet()
     mail_composer += InsertAppMetadata()
-    mail_composer += DumpStyleSheet(config.css_path)
+    mail_composer += DumpStyleSheet(policy.css, config.css_path)
     mail_composer += DumpAllImages(config.image_path)
-    mail_composer += InsertMailHeader(config.profile_image_path)
+    mail_composer += InsertMailHeader(policy.mail_header, config.profile_image_path)
     mail_composer += DumpMailMarkup()
 
     downloaded_mails = set()

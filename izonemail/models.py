@@ -1,11 +1,19 @@
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Sequence, NamedTuple, MutableMapping, Mapping, Optional, Iterator, MutableSequence
+from typing import Sequence, MutableMapping, Mapping, Optional, Iterator, MutableSequence
 
 from bs4 import BeautifulSoup
 
-API_HOST = r'https://app-api.izone-mail.com'
-APP_HOST = r'https://app-web.izone-mail.com'
+
+@dataclass
+class Policy:
+    bundle_id: str
+    api_host: str
+    app_host: str
+    mail_header: str
+    css: str
+    genesis: datetime
 
 
 class Profile(MutableMapping):
@@ -64,46 +72,29 @@ class Profile(MutableMapping):
         return key.lower() in cls._valid_keys
 
 
+@dataclass(frozen=True)
 class User:
-    def __init__(self, id: str, access_token: str, nickname: str, gender: str,
-                 country_code: str, prefecture_id: int, birthday: str, member_id: int):
-        self.id = id
-        self.access_token = access_token
-        self.nickname = nickname
-        self.gender = gender
-        self.country_code = country_code
-        self.prefecture_id = prefecture_id
-        self.birthday = birthday
-        self.member_id = member_id
-
-    def __hash__(self):
-        return hash(self.id)
-
-    def __eq__(self, other):
-        if not isinstance(other, User):
-            return NotImplemented
-        return self.id == other.id
+    id: str
+    access_token: str = field(compare=False)
+    nickname: str = field(compare=False)
+    gender: str = field(compare=False)
+    country_code: str = field(compare=False)
+    prefecture_id: int = field(compare=False)
+    birthday: str = field(compare=False)
+    member_id: int = field(compare=False)
 
 
+@dataclass(frozen=True)
 class Member:
-    def __init__(self, id: int, name: str, image_url: str):
-        self.id = id
-        self.name = name
-        self.image_url = image_url
-
-    def __hash__(self):
-        return self.id
-
-    def __eq__(self, other):
-        if not isinstance(other, Member):
-            return NotImplemented
-        return self.id == other.id
+    id: int
+    name: str = field(compare=False)
+    image_url: str = field(compare=False)
 
 
+@dataclass(frozen=True)
 class Team(Sequence):
-    def __init__(self, name: str, members: Sequence[Member]):
-        self.name = name
-        self.members = members
+    name: str
+    members: Sequence[Member] = field(compare=False)
 
     def __len__(self):
         return len(self.members)
@@ -112,19 +103,11 @@ class Team(Sequence):
         return self.members[i]
 
 
+@dataclass(frozen=True)
 class Group(Sequence):
-    def __init__(self, id: int, name: str, teams: Sequence[Team]):
-        self.id = id
-        self.name = name
-        self.teams = teams
-
-    def __hash__(self):
-        return self.id
-
-    def __eq__(self, other):
-        if not isinstance(other, Group):
-            return NotImplemented
-        return self.id == other.id
+    id: int
+    name: str = field(compare=False)
+    teams: Sequence[Team] = field(compare=False)
 
     def __len__(self):
         return len(self.teams)
@@ -133,29 +116,21 @@ class Group(Sequence):
         return self.teams[i]
 
 
+@dataclass(frozen=True)
 class Mail:
-    def __init__(self, member: Member, id: str, subject: str, content: str, received: datetime, detail_url: str):
-        self.member = member
-        self.id = id
-        self.subject = subject
-        self.content = content
-        self.received = received
-        self.detail_url = detail_url
-
-    def __hash__(self):
-        return hash(self.id)
-
-    def __eq__(self, other):
-        if not isinstance(other, Mail):
-            return NotImplemented
-        return self.id == other.id
+    member: Member = field(compare=False)
+    id: str
+    subject: str = field(compare=False)
+    content: str = field(compare=False)
+    received: datetime = field(compare=False)
+    detail_url: str = field(compare=False)
 
 
+@dataclass(frozen=True)
 class Inbox(Sequence):
-    def __init__(self, page: int, has_next_page: bool, mails: Sequence[Mail]):
-        self.page = page
-        self.has_next_page = has_next_page
-        self.mails = mails
+    page: int
+    has_next_page: bool
+    mails: Sequence[Mail]
 
     def __len__(self):
         return len(self.mails)
@@ -164,14 +139,16 @@ class Inbox(Sequence):
         return self.mails[i]
 
 
-class Artifact(NamedTuple):
+@dataclass(frozen=True)
+class Artifact:
     path: Path
     data: bytes
 
 
-class ComposerPayload(NamedTuple):
+@dataclass(frozen=True)
+class ComposerPayload:
     recipient: User
     header: Mail
     body: BeautifulSoup
     path: Path
-    artifacts: MutableSequence[Artifact]
+    artifacts: MutableSequence[Artifact] = field(default_factory=list)

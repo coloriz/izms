@@ -1,0 +1,18 @@
+[
+  {
+    "bundle_id": "com.ca-smart.izonemail",
+    "api_host": "https://app-api.izone-mail.com",
+    "app_host": "https://app-web.izone-mail.com",
+    "mail_header": "mail_header.min.html",
+    "css": "starship.min.css",
+    "genesis": "2018-10-29T20:00"
+  },
+  {
+    "bundle_id": "com.camobile.hkt48mail",
+    "api_host": "https://api-hkt.akb-groupmail.com",
+    "app_host": "https://web-hkt.akb-groupmail.com",
+    "mail_header": "mail_header.min.html",
+    "css": "hkt.min.css",
+    "genesis": "2011-10-23T11:30"
+  }
+]

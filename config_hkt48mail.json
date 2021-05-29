@@ -1,6 +1,6 @@
 {
-  "bundle_id": "com.ca-smart.izonemail",
-  "destination": "incoming",
+  "bundle_id": "com.camobile.hkt48mail",
+  "destination": "incoming_hkt48mail",
   "mail_path": "/mail/{member_id}/{mail_id}.html",
   "profile_image_path": "/",
   "css_path": "/css",
@@ -11,7 +11,9 @@
     "access-token": "<ACCESS TOKEN>",
     "os-type": "iOS",
     "terms-version": "5",
-    "application-version": "1.2.3",
-    "application-language": "ko"
-  }
+    "application-version": "1.3.4",
+    "application-language": "ja"
+  },
+  "head": "HEAD_hkt48mail",
+  "index": "INDEX_hkt48mail"
 }

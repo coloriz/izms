@@ -47,7 +47,7 @@ class MailComposer(MutableSequence):
             'received': mail.received,
             'subject': slugify(mail.subject)
         }))
-        payload = ComposerPayload(recipient, mail, soup, path, [])
+        payload = ComposerPayload(recipient, mail, soup, path)
 
         for c in self._cmds:
             c.execute(payload)

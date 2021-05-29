@@ -10,6 +10,9 @@ IZ*ONE Mail Shelter (IZMS)는 아이즈원 프라이빗 메일 앱에서 받은 
 
 ## Changelog
 
+**2021.05.29**
+- HKT48 Mail 대응 업데이트
+
 **2021.04.07**
 - 병렬 다운로드 지원 (`max_workers` 옵션)
 
@@ -51,6 +54,8 @@ IZMS는 다음 환경에서 테스트 되었습니다.
 
 #### 2. config.json 설정
 
+> 📢 HKT48 Mail의 경우 `config.json`이 아닌 `config_hkt48mail.json`을 수정
+
 ```json5
 {
   // ...
@@ -69,6 +74,7 @@ Charles, Wireshark, Burp Suite등의 SSL 패킷 캡처 툴을 이용하여 알�
 **Example - config.json**
 ```json
 {
+  "bundle_id": "com.ca-smart.izonemail",
   "destination": "incoming",
   "mail_path": "/mail/{member_id}/{mail_id}.html",
   "profile_image_path": "/",
@@ -94,9 +100,18 @@ Charles, Wireshark, Burp Suite등의 SSL 패킷 캡처 툴을 이용하여 알�
 ```
 
 앱을 실행합니다.
+
+##### 3-1. 아이즈원 메일
 ```shell
 > ./izms
 ```
+
+##### 3-2. HKT48 Mail
+```shell
+> ./izms -c config_hkt48mail.json
+```
+> 📢 HKT48 Mail만 백업하고자 하는 경우 `config_hkt48mail.json` 파일명을 `config.json`으로 변경 후 아무런 옵션 없이 실행시켜도 됩니다.
+
 ![cmd_demo01](docs/cmd_demo01.gif)
 
 만약 `user-id`나 `access-token`을 잘못 입력했을 경우 401 Unauthorized 에러가 출력됩니다.
@@ -230,6 +245,11 @@ CSS는 HTML의 `<style>`태그 안에, 이미지는 base64로 인코딩되어 �
 ### `config.json`
 애플리케이션 설정 파일입니다. 실행파일과 같은 폴더에 위치해야합니다. 유효한 key는 다음과 같습니다.
 
+#### `bundle_id` (`str`, default: 'com.ca-smart.izonemail')
+백업할 메일앱의 bundle id입니다. 이 값에 따라 요청하는 API endpoint, CSS 등이 결정됩니다.
+- com.ca-smart.izonemail
+- com.camobile.hkt48mail
+
 #### `destination` (`str`, default: 'incoming')
 메일과 기타 데이터가 저장될 루트 디렉토리입니다.
 
@@ -273,6 +293,12 @@ HTTP 요청 실패시 최대 재시도 횟수
 
 #### `max_workers` (`int`, default: 8)
 HTTP 요청과 저장을 수행하는 스레드 개수
+
+#### `head` (`str`, default: 'HEAD')
+가장 최근에 받은 메일의 일시를 저장하는 메타데이터 파일명을 지정합니다.
+
+#### `index` (`str`, default: 'INDEX')
+성공적으로 다운로드 받은 메일의 id를 저장하는 메타데이터 파일명을 지정합니다.
 
 #### `finish_hook` (`str`)
 프로그램 종료시 호출될 핸들러 경로 (args: "program name" "num of downloaded mails")

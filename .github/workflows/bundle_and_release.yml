@@ -32,7 +32,7 @@ jobs:
       run: |
         PATHSEP=$(python -c "import os; print(os.pathsep)")
         pyinstaller --onefile --add-data "izonemail/assets${PATHSEP}izonemail/assets" --icon "docs/izms-logo_256x256.ico" izms.py
-        cp config.json README.md dist/
+        cp config.json config_hkt48mail.json README.md dist/
     - name: Archive build
       id: archive
       run: |

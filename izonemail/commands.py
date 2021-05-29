@@ -9,7 +9,7 @@ from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
 
 from .__version__ import __title__, __version__
-from .factory import SessionFactory
+from .factory import SessionFactory, AssetFactory
 from .models import Artifact, ComposerPayload
 from .utils import naive_join, response_to_base64, as_posix
 
@@ -22,11 +22,9 @@ class ICommand(ABC):
 
 class InsertMailHeaderCommand(ICommand):
     """Insert mail header before mail body"""
-    _header_path = Path(__file__).resolve().parent / 'assets/mail_header.min.html'
-    _header_template = _header_path.read_text(encoding='utf-8')
-
-    def __init__(self, profile_image_root: Union[str, PathLike, None] = '/'):
+    def __init__(self, asset_key: str, profile_image_root: Union[str, PathLike, None] = '/'):
         self._s = SessionFactory.instance()
+        self._header_template = AssetFactory.get(asset_key).decode('utf-8')
         self._profile_image_root = profile_image_root
         if self._profile_image_root is not None:
             self._profile_image_root = Path(self._profile_image_root)
@@ -102,17 +100,16 @@ class RemoveAllStyleSheetCommand(ICommand):
 
 class DumpStyleSheetCommand(ICommand):
     """Dump stylesheet to local or embed in markup"""
-    _stylesheet_path = Path(__file__).resolve().parent / 'assets/starship.min.css'
-    _stylesheet = _stylesheet_path.read_text(encoding='utf-8')
-
-    def __init__(self, css_root: Union[str, PathLike, None] = '/css'):
+    def __init__(self, asset_key: str, css_root: Union[str, PathLike, None] = '/css'):
+        self._filename = asset_key
+        self._stylesheet = AssetFactory.get(asset_key).decode('utf-8')
         self._css_root = css_root
         if self._css_root is not None:
             self._css_root = Path(self._css_root)
 
     def execute(self, mail: ComposerPayload):
         if self._css_root:
-            path = self._css_root / self._stylesheet_path.name
+            path = self._css_root / self._filename
             mail.artifacts.append(Artifact(path, self._stylesheet.encode('utf-8')))
             url = as_posix(relpath(path, mail.path.parent))
 

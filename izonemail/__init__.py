@@ -16,4 +16,8 @@ from .commands import (
 )
 from .composer import MailComposer
 from .izonemail import IZONEMail
-from .factory import SessionFactory
+from .factory import (
+    SessionFactory,
+    AssetFactory,
+    PolicyFactory,
+)

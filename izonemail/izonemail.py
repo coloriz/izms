@@ -1,11 +1,12 @@
 from datetime import datetime
 from typing import Dict, List
+from urllib.parse import urljoin
 
 from easydict import EasyDict
 from requests import Response
 
 from .factory import SessionFactory
-from .models import API_HOST, Profile, User, Member, Team, Group, Mail, Inbox
+from .models import Profile, User, Member, Team, Group, Mail, Inbox
 
 
 def create_member(m):
@@ -22,8 +23,9 @@ def create_mail(m):
 
 
 class IZONEMail:
-    def __init__(self, profile: Profile):
+    def __init__(self, api_host: str, profile: Profile):
         self._s = SessionFactory.instance()
+        self._api_host = api_host
         self._profile = profile
 
     def _get(self, url, **kwargs) -> Response:
@@ -32,11 +34,12 @@ class IZONEMail:
         return r
 
     def _get_json(self, url, **kwargs) -> Dict:
+        url = urljoin(self._api_host, url)
         r = self._get(url, **kwargs)
         return EasyDict(r.json())
 
     def get_members(self) -> List[Group]:
-        r = self._get_json(f'{API_HOST}/v1/members')
+        r = self._get_json('/v1/members')
 
         groups = []
         for g in r.all_members:
@@ -46,22 +49,22 @@ class IZONEMail:
         return groups
 
     def get_user(self) -> User:
-        r = self._get_json(f'{API_HOST}/v1/users')
+        r = self._get_json('/v1/users')
         u = r.user
         user = User(u.id, u.access_token, u.nickname, u.gender,
                     u.country_code, u.prefecture_id, u.birthday, u.member_id)
         return user
 
     def get_application_settings(self) -> Dict:
-        r = self._get_json(f'{API_HOST}/v1/application_settings')
+        r = self._get_json('/v1/application_settings')
         return r.application_settings
 
     def get_informations(self) -> List[Dict]:
-        r = self._get_json(f'{API_HOST}/v1/informations')
+        r = self._get_json('/v1/informations')
         return r.informations
 
     def get_inbox(self, page: int = 1) -> Inbox:
-        r = self._get_json(f'{API_HOST}/v1/inbox', params={
+        r = self._get_json('/v1/inbox', params={
             'is_star': 0,
             'is_unread': 0,
             'page': page
