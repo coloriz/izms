@@ -125,7 +125,7 @@ Charles, Wireshark, Burp Suite등의 SSL 패킷 캡처 툴을 이용하여 알�
 
 #### 1. Clone repo
 ```shell
-> git clone https://github.com/coloriz/izone-mail-shelter.git
+> git clone https://github.com/coloriz/izms.git
 > cd izone-mail-shelter
 ```
 
